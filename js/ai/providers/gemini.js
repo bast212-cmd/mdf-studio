@@ -1,17 +1,32 @@
-// Fournisseur d'images : Google Gemini (clé Google AI Studio), appelé directement depuis l'appareil.
-// Portage de l'ancien server/gemini.js. Gère les deux formats d'API :
-// "interactions" (récent) et "generateContent" (historique).
-const BASE = 'https://generativelanguage.googleapis.com/v1beta';
+// Fournisseur d'images : Google Gemini. Portage de l'ancien server/gemini.js.
+// Deux façons d'appeler Google :
+//  - par le relais Cloudflare (dossier worker/) : la clé reste sur le relais, l'appareil n'envoie qu'un code d'accès ;
+//  - directement avec une clé Google AI Studio saisie sur l'appareil (sans relais, ou clé saisie sans code d'accès).
+// Gère les deux formats d'API : "interactions" (récent) et "generateContent" (historique).
+const GOOGLE = 'https://generativelanguage.googleapis.com';
+// Adresse du relais Cloudflare, proposée par défaut sur tous les appareils (README, section 3)
+const RELAY_URL = '';
+
+// Relais utilisé s'il a une adresse, sauf si l'appareil a une clé personnelle et pas de code d'accès
+const relayOf = (cfg) => {
+  if (cfg?.apiKey?.trim() && !cfg?.accessCode?.trim()) return '';
+  return String(cfg?.relayUrl || RELAY_URL).trim().replace(/\/+$/, '');
+};
 
 export const gemini = {
   id: 'gemini',
   label: 'Google Gemini',
-  help: `Clé à créer sur <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.
-    La facturation doit être activée sur le projet Google Cloud de la clé (paiement à l'usage, environ 0,02 à 0,04 $ par image 1K).
-    Pensez à fixer un plafond de dépense dans Google Cloud.`,
+  help: `Avec le relais, saisissez seulement le code d'accès : la clé Gemini est gardée sur le relais.
+    Sans relais, clé à créer sur <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>
+    (facturation activée sur le projet Google Cloud, environ 0,02 à 0,04 $ par image 1K ; pensez à fixer un plafond de dépense).`,
   /** Champs affichés dans l'écran Réglages */
   fields: [
-    { key: 'apiKey', label: 'Clé API Google AI Studio', type: 'secret', placeholder: 'AIza…' },
+    { key: 'accessCode', label: "Code d'accès du relais", type: 'secret',
+      hint: "Fourni par la personne qui gère l'application. À saisir une seule fois sur chaque appareil." },
+    { key: 'relayUrl', label: 'Adresse du relais', type: 'text', default: RELAY_URL, placeholder: 'https://mdf-studio-relais.….workers.dev',
+      hint: 'Laissez la valeur proposée.' },
+    { key: 'apiKey', label: 'Clé API Google AI Studio (sans relais)', type: 'secret', placeholder: 'AIza…',
+      hint: "Seulement pour appeler Google sans relais : laissez alors le code d'accès vide." },
     { key: 'imageModel', label: "Modèle d'image", type: 'text', default: 'gemini-3.1-flash-image',
       suggestions: ['gemini-3.1-flash-image', 'gemini-3-pro-image', 'gemini-2.5-flash-image'],
       hint: 'gemini-3.1-flash-image : rapide, bon rapport qualité/prix. gemini-3-pro-image : qualité maximale, plus cher.' },
@@ -27,12 +42,12 @@ export const gemini = {
       options: [['auto', 'Automatique (recommandé)'], ['interactions', 'interactions uniquement'], ['generateContent', 'generateContent uniquement']] },
   ],
 
-  isConfigured: (cfg) => Boolean(cfg?.apiKey?.trim()),
+  isConfigured: (cfg) => Boolean(relayOf(cfg) || cfg?.apiKey?.trim()),
   modelLabel: (cfg) => cfg?.imageModel || 'gemini-3.1-flash-image',
 
   /** Vérifie la clé ; renvoie la liste des modèles d'image disponibles */
   async test(cfg) {
-    const res = await call('GET', `${BASE}/models?pageSize=1000`, null, cfg);
+    const res = await call('GET', `/models?pageSize=1000`, null, cfg);
     const models = (res.models || []).map((m) => String(m.name || '').replace(/^models\//, ''));
     return { ok: true, imageModels: models.filter((m) => /image/i.test(m)), textModels: models.filter((m) => /^gemini/.test(m) && !/image|tts|embedding|audio|live/i.test(m)) };
   },
@@ -55,7 +70,7 @@ export const gemini = {
             ...images.map((im) => ({ type: 'image', mime_type: im.mimeType, data: im.data })),
           ],
         };
-        const out = extract(await call('POST', `${BASE}/interactions`, body, cfg));
+        const out = extract(await call('POST', `/interactions`, body, cfg));
         if (out.images.length) return out;
         errors.push('interactions : aucune image renvoyée' + (out.text ? ` (« ${out.text.slice(0, 200)} »)` : ''));
       } catch (e) {
@@ -73,7 +88,7 @@ export const gemini = {
           contents: [{ role: 'user', parts: [{ text: prompt }, ...images.map((im) => ({ inlineData: { mimeType: im.mimeType, data: im.data } }))] }],
           generationConfig: { responseModalities: ['TEXT', 'IMAGE'], ...(Object.keys(imageConfig).length ? { imageConfig } : {}) },
         };
-        const out = extract(await call('POST', `${BASE}/models/${encodeURIComponent(model)}:generateContent`, body, cfg));
+        const out = extract(await call('POST', `/models/${encodeURIComponent(model)}:generateContent`, body, cfg));
         if (out.images.length) return out;
         errors.push('generateContent : aucune image renvoyée' + (out.text ? ` (« ${out.text.slice(0, 200)} »)` : ''));
       } catch (e) {
@@ -95,24 +110,32 @@ export const gemini = {
       contents: [{ role: 'user', parts: [{ text: prompt }, ...images.map((im) => ({ inlineData: { mimeType: im.mimeType, data: im.data } }))] }],
       generationConfig,
     };
-    const out = extract(await call('POST', `${BASE}/models/${encodeURIComponent(model)}:generateContent`, body, cfg));
+    const out = extract(await call('POST', `/models/${encodeURIComponent(model)}:generateContent`, body, cfg));
     const m = out.text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     if (!m) throw new Error('Réponse non exploitable du modèle');
     return JSON.parse(m[0]);
   },
 };
 
-async function call(method, url, body, cfg) {
+async function call(method, path, body, cfg) {
   if (!navigator.onLine) throw Object.assign(new Error("Pas de connexion internet : la génération d'images nécessite internet."), { fatal: true });
+  // Relais : même chemin que chez Google, le relais ajoute la clé
+  const relay = relayOf(cfg);
+  const url = `${relay || GOOGLE}/v1beta${path}`;
+  const auth = relay
+    ? (cfg.accessCode?.trim() ? { 'x-access-code': cfg.accessCode.trim() } : {})
+    : { 'x-goog-api-key': String(cfg.apiKey || '').trim() };
   let res;
   try {
     res = await fetch(url, {
       method,
-      headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), 'x-goog-api-key': cfg.apiKey.trim() },
+      headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...auth },
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw Object.assign(new Error('Impossible de joindre Google (connexion internet coupée ou bloquée).'), { fatal: true });
+    throw Object.assign(new Error(relay
+      ? "Impossible de joindre le relais (connexion internet coupée, adresse du relais erronée, ou site non autorisé par le relais)."
+      : 'Impossible de joindre Google (connexion internet coupée ou bloquée).'), { fatal: true });
   }
   const text = await res.text();
   let json;
@@ -122,7 +145,8 @@ async function call(method, url, body, cfg) {
     const status = json?.error?.status || '';
     let nice = `Gemini ${res.status} : ${msg}`;
     let fatal = false;
-    if (/API key not valid|API_KEY_INVALID/i.test(msg)) { nice = 'Clé API invalide. Vérifiez-la dans les Réglages.'; fatal = true; }
+    if (status === 'RELAY_ERROR') { nice = `Relais : ${msg}`; fatal = true; }
+    else if (/API key not valid|API_KEY_INVALID/i.test(msg)) { nice = 'Clé API invalide. Vérifiez-la dans les Réglages.'; fatal = true; }
     else if (res.status === 429 || status === 'RESOURCE_EXHAUSTED') { nice = `Quota ou plafond de dépense atteint (${msg})`; fatal = true; }
     else if (res.status === 403) nice = `Accès refusé par Google : ${msg} (API « Generative Language » activée ? Facturation active ? Restrictions de la clé ?)`;
     else if (/billing/i.test(msg)) nice = `Facturation requise : ${msg}`;

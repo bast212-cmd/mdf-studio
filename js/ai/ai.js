@@ -22,7 +22,7 @@ async function readImage(mediaId) {
   return { mimeType: blob.type || 'image/jpeg', data: await blobToBase64(blob) };
 }
 
-const notConfigured = () => Object.assign(new Error("Clé API non renseignée : ouvrez les Réglages pour l'ajouter."), { code: 'NO_KEY' });
+const notConfigured = () => Object.assign(new Error("Code d'accès ou clé API non renseigné : ouvrez les Réglages pour l'ajouter."), { code: 'NO_KEY' });
 
 // ---------- Détection des meubles présents sur les photos ----------
 export async function analyzeRoom(room) {

@@ -1,0 +1,13 @@
+# Relais Cloudflare entre l'application et l'API Gemini (voir README, section 3).
+name = "mdf-studio-relais"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+[vars]
+# Adresses du site autorisées à utiliser le relais, séparées par des virgules.
+# * remplace un morceau d'adresse : la 2e ligne couvre les aperçus Netlify (deploy previews, branches).
+ALLOWED_ORIGINS = "https://graceful-pothos-d68e8a.netlify.app,https://*--graceful-pothos-d68e8a.netlify.app"
+
+# Secrets à créer dans Cloudflare (Worker › Settings › Variables and secrets), jamais dans ce fichier :
+#   GEMINI_API_KEY  clé Google AI Studio (obligatoire)
+#   ACCESS_CODE     code à saisir une fois dans les Réglages de l'app (facultatif mais conseillé)

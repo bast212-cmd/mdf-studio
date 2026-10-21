@@ -62,14 +62,28 @@ Pourquoi c'est indispensable : dans un onglet Safari, les données d'un site non
 
 Sur ordinateur : Chrome ou Edge proposent « Installer » dans la barre d'adresse ; Safari sur Mac : *Fichier › Ajouter au Dock*.
 
-## 3. Clé API (sur chaque appareil)
+## 3. Clé API et relais Cloudflare
 
+La clé Gemini est gardée sur un petit relais Cloudflare (dossier `worker/`, gratuit) : les appareils n'ont plus la clé, seulement un code d'accès court, saisi une fois.
+
+### Clé Google (une seule fois)
 1. Créez une clé sur https://aistudio.google.com/apikey.
 2. Activez la facturation sur le projet Google Cloud de la clé (paiement à l'usage, environ 0,02 à 0,04 $ par image 1K). L'abonnement Gemini grand public ne donne pas accès à l'API.
 3. Dans Google Cloud : *Facturation › Budgets et alertes* pour fixer un plafond, et *API et services › Identifiants* pour limiter la clé à l'API « Generative Language ».
-4. Dans l'application : **Réglages**, collez la clé, **Tester la clé**.
 
-La clé reste sur l'appareil et n'est jamais incluse dans les exports.
+### Relais (une seule fois)
+1. Sur https://dash.cloudflare.com (compte gratuit) : *Workers & Pages › Create › Import a repository*, choisissez ce dépôt GitHub. Dans les réglages avancés, **Root directory** (ou *Path*) : `worker`. Déployez.
+   Le relais est ensuite redéployé automatiquement à chaque modification de `worker/` sur `main`.
+2. Dans le Worker créé : *Settings › Variables and secrets*, ajoutez deux **secrets** :
+   - `GEMINI_API_KEY` : la clé Google ;
+   - `ACCESS_CODE` : un code d'accès de votre choix (sans lui, n'importe qui connaissant l'adresse du relais pourrait l'utiliser).
+3. Copiez l'adresse du Worker (`https://mdf-studio-relais.<votre-compte>.workers.dev`) dans `RELAY_URL`, en tête de `js/ai/providers/gemini.js`, et fusionnez dans `main`.
+4. Si l'adresse du site Netlify change, mettez à jour `ALLOWED_ORIGINS` dans `worker/wrangler.toml`.
+
+### Sur chaque appareil
+**Réglages** › code d'accès › **Tester la connexion**. Le code reste sur l'appareil et n'est jamais inclus dans les exports.
+
+Sans relais (par exemple en ouvrant `index.html` en local), laissez le code d'accès vide et collez une clé Google personnelle : l'appareil appelle alors Google directement.
 
 ## 4. Partager une bibliothèque
 
@@ -108,6 +122,7 @@ js/data/legacy.js  reprise des données de l'ancienne version
 js/ai/ai.js        génération et détection (ancien server.js)
 js/ai/prompt.js    construction du prompt à partir du plan (inchangé)
 js/ai/providers/   fournisseurs d'images interchangeables
+worker/            relais Cloudflare qui garde la clé Gemini (déployé à part, voir section 3)
 ```
 
 ### Ajouter un fournisseur d'images (Ideogram, …)
