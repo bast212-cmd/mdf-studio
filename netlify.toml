@@ -1,0 +1,14 @@
+# Site statique : aucune compilation, on publie le dossier tel quel.
+[build]
+  publish = "."
+  command = "echo 'Aucune compilation necessaire'"
+
+# Le service worker et la page doivent toujours être relus pour que les mises à jour arrivent.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
