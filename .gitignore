@@ -1,2 +1,5 @@
 .DS_Store
 Thumbs.db
+node_modules/
+# Fichier regroupé : régénéré par Netlify à chaque mise en ligne (npm run build)
+js/app.bundle.js

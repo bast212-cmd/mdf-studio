@@ -1,0 +1,10 @@
+{
+  "name": "mdf-studio",
+  "private": true,
+  "scripts": {
+    "build": "esbuild js/app.js --bundle --format=iife --target=safari15,chrome100 --charset=utf8 --legal-comments=none --outfile=js/app.bundle.js"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.5"
+  }
+}

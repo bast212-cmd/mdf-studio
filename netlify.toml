@@ -1,7 +1,7 @@
-# Site statique : aucune compilation, on publie le dossier tel quel.
+# Netlify récupère le code sur GitHub, régénère js/app.bundle.js puis publie le dossier.
 [build]
   publish = "."
-  command = "echo 'Aucune compilation necessaire'"
+  command = "npm run build"
 
 # Le service worker et la page doivent toujours être relus pour que les mises à jour arrivent.
 [[headers]]

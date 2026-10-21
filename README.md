@@ -24,30 +24,33 @@ Application web installable (PWA) pour visualiser un nouveau meuble dans une pi�
 
 Safari n'installe une application web que si elle est servie en **HTTPS**. Il faut donc déposer ce dossier sur un hébergement **statique et gratuit** : il ne fait que distribuer les fichiers de l'application, aucun calcul ni aucune donnée n'y transite. Aucun ordinateur à laisser allumé.
 
-Au choix :
+Le code vit sur GitHub et Netlify le publie automatiquement : à chaque modification de la branche `main`, Netlify récupère le code, régénère `js/app.bundle.js` (`npm run build`, voir `netlify.toml`) et met le site à jour. On ne dépose plus de dossier à la main.
 
-- **Netlify Drop** (le plus simple) : ouvrez https://app.netlify.com/drop, glissez-déposez le dossier `mdf-studio`. Créez un compte gratuit pour garder l'adresse.
-- **GitHub Pages** : créez un dépôt, déposez-y le contenu du dossier, puis *Settings › Pages › Deploy from branch*. Adresse du type `https://votre-nom.github.io/mdf-studio/`.
-- **Cloudflare Pages** : même principe.
+Branchement (une seule fois) : dans Netlify, sur le site existant, *Site configuration › Build & deploy › Link repository*, puis choisir le dépôt GitHub. Garder le site existant conserve son adresse.
 
-⚠ **Gardez toujours la même adresse.** Les données de chaque appareil sont rattachées à l'adresse du site : en changer revient à repartir d'une application vide (utilisez alors *Réglages › Sauvegarde complète* pour transférer).
+⚠ **Gardez toujours la même adresse.** Les données de chaque appareil (clé API comprise) sont rattachées à l'adresse du site : en changer revient à repartir d'une application vide (utilisez alors *Réglages › Sauvegarde complète* pour transférer).
+
+### Travailler à plusieurs
+1. Créez une branche pour chaque modification, puis ouvrez une *pull request* sur GitHub.
+2. Netlify publie un aperçu de la branche à une adresse à part (*deploy preview*) : testez-le avant de fusionner. Cet aperçu a son propre stockage, il faut y recoller la clé.
+3. Fusionnez dans `main` : la version en ligne est mise à jour.
 
 ### Mettre à jour l'application
-1. Modifiez les fichiers, puis régénérez `js/app.bundle.js` (commande ci-dessus).
+1. Modifiez les fichiers.
 2. Incrémentez `VERSION` dans `sw.js` **et** `APP_VERSION` dans `js/store.js` (ex. `2.0.1`).
 3. Si vous avez ajouté un fichier JS/CSS/image, ajoutez-le à la liste `FILES` de `sw.js`.
-4. Redéposez le dossier. Sur chaque appareil, l'application affiche « Nouvelle version disponible › Mettre à jour ». Les données sont conservées.
+4. Fusionnez dans `main`. Sur chaque appareil, l'application affiche « Nouvelle version disponible › Mettre à jour ». Les données sont conservées.
 
 ### Utiliser sur l'ordinateur sans le mettre en ligne
 Double-cliquez sur `index.html` : l'application s'ouvre dans le navigateur et fonctionne (Chrome ou Edge recommandés).
 Limites de ce mode : pas d'installation ni de mode hors ligne garanti, et les données sont liées à l'emplacement du dossier (si vous le déplacez, vous repartez d'une application vide : faites d'abord une sauvegarde depuis Réglages).
 
 ### Modifier le code
-Les sources sont dans `js/`. La page charge un fichier regroupé, `js/app.bundle.js`, qu'il faut régénérer après chaque modification :
+Les sources sont dans `js/`. La page charge un fichier regroupé, `js/app.bundle.js`, généré à partir des sources. Il n'est pas enregistré sur GitHub (Netlify le régénère). Pour tester sur votre ordinateur, installez Node.js puis :
 ```bash
-npx esbuild js/app.js --bundle --format=iife --target=safari15,chrome100 --charset=utf8 --legal-comments=none --outfile=js/app.bundle.js
+npm install
+npm run build
 ```
-Le fichier regroupé est fourni : Netlify n'a rien à compiler (voir `netlify.toml`).
 
 ## 2. Installation sur l'iPad
 
