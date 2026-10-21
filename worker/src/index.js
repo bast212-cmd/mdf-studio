@@ -25,8 +25,11 @@ export default {
     }
 
     if (!allowed) return error(403, `Origine non autorisée (${origin || 'aucune'}) : ajoutez-la à ALLOWED_ORIGINS dans worker/wrangler.toml.`, cors);
-    if (env.ACCESS_CODE && !sameText(request.headers.get('x-access-code') || '', env.ACCESS_CODE)) {
-      return error(401, "Code d'accès du relais incorrect ou manquant.", cors);
+    if (env.ACCESS_CODE) {
+      // espaces parasites et majuscules ignorés (saisie sur iPad, copier-coller dans Cloudflare)
+      const sent = (request.headers.get('x-access-code') || '').trim().toLowerCase();
+      if (!sent) return error(401, "Code d'accès manquant : saisissez-le dans les Réglages, puis Enregistrer.", cors);
+      if (!sameText(sent, String(env.ACCESS_CODE).trim().toLowerCase())) return error(401, "Code d'accès du relais incorrect.", cors);
     }
     if (!env.GEMINI_API_KEY) return error(500, 'Clé GEMINI_API_KEY absente du relais (Cloudflare › Variables and secrets).', cors);
 
