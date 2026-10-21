@@ -5,7 +5,7 @@
 // Gère les deux formats d'API : "interactions" (récent) et "generateContent" (historique).
 const GOOGLE = 'https://generativelanguage.googleapis.com';
 // Adresse du relais Cloudflare, proposée par défaut sur tous les appareils (README, section 3)
-const RELAY_URL = '';
+const RELAY_URL = 'https://mdf-studio-relais.bastien-menguy.workers.dev';
 
 // Relais utilisé s'il a une adresse, sauf si l'appareil a une clé personnelle et pas de code d'accès
 const relayOf = (cfg) => {
