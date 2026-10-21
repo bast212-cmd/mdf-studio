@@ -25,12 +25,13 @@ export default {
     }
 
     if (!allowed) return error(403, `Origine non autorisée (${origin || 'aucune'}) : ajoutez-la à ALLOWED_ORIGINS dans worker/wrangler.toml.`, cors);
-    if (env.ACCESS_CODE) {
-      // espaces parasites et majuscules ignorés (saisie sur iPad, copier-coller dans Cloudflare)
-      const sent = (request.headers.get('x-access-code') || '').trim().toLowerCase();
-      if (!sent) return error(401, "Code d'accès manquant : saisissez-le dans les Réglages, puis Enregistrer.", cors);
-      if (!sameText(sent, String(env.ACCESS_CODE).trim().toLowerCase())) return error(401, "Code d'accès du relais incorrect.", cors);
-    }
+    // Sans code configuré, le relais refuse tout : sinon n'importe qui pourrait utiliser la clé
+    const expected = String(env.ACCESS_CODE || '').trim().toLowerCase();
+    if (!expected) return error(500, 'Secret ACCESS_CODE absent du relais (Cloudflare › Variables and secrets, type Secret).', cors);
+    // espaces parasites et majuscules ignorés (saisie sur iPad, copier-coller dans Cloudflare)
+    const sent = (request.headers.get('x-access-code') || '').trim().toLowerCase();
+    if (!sent) return error(401, "Code d'accès manquant : saisissez-le dans les Réglages, puis Enregistrer.", cors);
+    if (!sameText(sent, expected)) return error(401, "Code d'accès du relais incorrect.", cors);
     if (!env.GEMINI_API_KEY) return error(500, 'Clé GEMINI_API_KEY absente du relais (Cloudflare › Variables and secrets).', cors);
 
     const url = new URL(request.url);

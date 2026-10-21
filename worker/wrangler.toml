@@ -10,4 +10,5 @@ ALLOWED_ORIGINS = "https://graceful-pothos-d68e8a.netlify.app,https://*--gracefu
 
 # Secrets à créer dans Cloudflare (Worker › Settings › Variables and secrets), jamais dans ce fichier :
 #   GEMINI_API_KEY  clé Google AI Studio (obligatoire)
-#   ACCESS_CODE     code à saisir une fois dans les Réglages de l'app (facultatif mais conseillé)
+#   ACCESS_CODE     code à saisir une fois dans les Réglages de l'app (obligatoire : sans lui le relais refuse tout)
+# Attention : choisir le type « Secret ». Les variables « Text » sont effacées à chaque déploiement depuis GitHub.
