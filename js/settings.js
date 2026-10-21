@@ -26,13 +26,13 @@ export async function renderSettings(view) {
           <div id="pfields"></div>
           <div class="btn-row">
             <button class="btn" type="submit">Enregistrer</button>
-            <button class="btn btn--ghost" type="button" data-test>Tester la clé</button>
+            <button class="btn btn--ghost" type="button" data-test>Tester la connexion</button>
           </div>
           <div id="testout" class="small" style="margin-top:12px"></div>
         </form>
         <div class="alert alert--info small" style="margin-top:20px">
-          La clé est enregistrée <strong>uniquement sur cet appareil</strong> et n'est jamais incluse dans les fichiers exportés.
-          Les images sont envoyées directement de l'appareil à Google, sans intermédiaire.
+          Avec le relais, la clé Gemini reste sur le relais (Cloudflare) : l'appareil ne garde que le code d'accès. Sans relais, la clé est enregistrée <strong>uniquement sur cet appareil</strong>. Ni l'un ni l'autre n'est inclus dans les fichiers exportés.
+          Les images sont transmises à Google pour le rendu (par le relais, ou directement sans relais).
           Conseils : dans Google Cloud, limitez la clé à l'API « Generative Language » et fixez un plafond de dépense (Facturation › Budgets et alertes).
         </div>
       </section>
@@ -116,7 +116,7 @@ export async function renderSettings(view) {
     const p = getProvider(providerId);
     const cfg = { ...providerConfig(settings, p.id), ...readForm() };
     const out = $('#testout', view);
-    if (!p.isConfigured(cfg)) { out.innerHTML = '<span class="err-text">Renseignez d\'abord la clé.</span>'; return; }
+    if (!p.isConfigured(cfg)) { out.innerHTML = '<span class="err-text">Renseignez d\'abord le code d\'accès ou la clé.</span>'; return; }
     if (!p.test) { out.textContent = 'Test non disponible pour ce fournisseur.'; return; }
     busy(e.currentTarget, true, 'Test…');
     try {
@@ -124,7 +124,7 @@ export async function renderSettings(view) {
       await saveForm();
       const model = cfg.imageModel;
       const found = !r.imageModels || !model || r.imageModels.includes(model);
-      out.innerHTML = `<span class="ok-text">✓ Clé valide, enregistrée.</span>
+      out.innerHTML = `<span class="ok-text">✓ Connexion valide, réglages enregistrés.</span>
         ${r.imageModels ? `<br>Modèles d'image accessibles : ${r.imageModels.map(esc).join(', ') || 'aucun'}.` : ''}
         ${!found ? `<br><span class="err-text">Le modèle « ${esc(model)} » n'apparaît pas dans la liste : vérifiez son nom.</span>` : ''}
         <br><span class="muted">Le test ne vérifie pas la facturation : une première génération le confirmera.</span>`;
@@ -179,5 +179,5 @@ export async function refreshStatusLine() {
   const offline = !navigator.onLine ? ' · Hors ligne (génération indisponible)' : '';
   el.innerHTML = st.configured
     ? `Moteur IA : ${esc(st.imageModel)}${offline}`
-    : `<a href="#/reglages">Clé API à renseigner dans les Réglages</a>${offline}`;
+    : `<a href="#/reglages">Code d'accès ou clé API à renseigner dans les Réglages</a>${offline}`;
 }
