@@ -6,7 +6,7 @@ import { src } from './data/media.js';
 import { renderProject } from './project.js';
 import { renderLibrary } from './library.js';
 import { renderQuick } from './quick.js';
-import { renderSettings, refreshStatusLine, isStandalone, isIOS } from './settings.js';
+import { renderSettings, refreshStatusLine, isStandalone, isIOS, applyOrientation } from './settings.js';
 import { startMediaObserver, collectGarbage } from './data/media.js';
 import { openDB } from './data/db.js';
 
@@ -204,6 +204,7 @@ function registerSW() {
     return;
   }
   startMediaObserver();
+  applyOrientation((await api.settings()).orientation);
   setupLogo();
   registerSW();
   installBanner();

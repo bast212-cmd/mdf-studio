@@ -7,8 +7,30 @@ import { src, storeImages, getMediaBlob, shareOrDownload } from './data/media.js
 import { furnitureCard } from './library.js';
 import { catalogueFurniture } from './catalogue.js';
 import { CATALOGUE_MDF } from './data/catalogue-mdf.js';
+import { providerConfig } from './ai/providers/index.js';
+import { fetchCatalogueImage } from './ai/providers/gemini.js';
 
 const pending = new Map(); // roomId -> Promise de génération (survit à la navigation)
+
+// Vignettes du catalogue, récupérées par le relais à l'affichage (4 à la fois), gardées pour la session
+const thumbs = new Map(); // url -> Promise<objectURL | ''>
+let thumbActive = 0;
+const thumbWaiting = [];
+function catalogueThumb(url, cfg) {
+  if (!thumbs.has(url)) {
+    thumbs.set(url, new Promise((resolve) => {
+      const run = async () => {
+        thumbActive++;
+        try { resolve(URL.createObjectURL(await fetchCatalogueImage(url, cfg))); } catch { resolve(''); thumbs.delete(url); }
+        thumbActive--;
+        thumbWaiting.shift()?.();
+      };
+      if (thumbActive < 4) run(); else thumbWaiting.push(run);
+    }));
+  }
+  return thumbs.get(url);
+}
+const thumbUrl = (it) => (it.photoUrls || []).find((u) => /home_default/.test(u)) || it.photoUrls?.at(-1);
 
 const STEPS = [
   { id: 'room', label: 'La pièce' },
@@ -309,16 +331,32 @@ export async function renderQuick(view, { id }) {
     else drawPhotoTab(tab);
   }
 
-  const filtersHTML = (cats) => `
+  // Filtres : pièce, puis type de meuble de cette pièce (seuls ceux présents dans la liste sont proposés)
+  const typeOptions = (items) => {
+    const inRoom = items.filter((x) => !filter.category || x.category === filter.category);
+    const order = store.categories.flatMap((c) => c.types || []);
+    const types = [...new Set(inRoom.map((x) => x.type).filter(Boolean))]
+      .sort((a, b) => ((order.indexOf(a) + 1) || 999) - ((order.indexOf(b) + 1) || 999) || a.localeCompare(b));
+    if (!types.includes(filter.type)) filter.type = '';
+    return `<option value="">Tous les types</option>${types.map((t) => `<option ${t === filter.type ? 'selected' : ''}>${esc(t)}</option>`).join('')}`;
+  };
+  const filtersHTML = (items) => {
+    const cats = store.categories.filter((c) => items.some((x) => x.category === c.id));
+    if (!cats.some((c) => c.id === filter.category)) filter.category = '';
+    return `
     <div class="filters">
-      <input class="input" data-q placeholder="Rechercher…" value="${esc(filter.q)}" type="search">
       <select class="input" data-cat><option value="">Toutes les pièces</option>${cats.map((c) => `<option value="${c.id}" ${c.id === filter.category ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
+      <select class="input" data-type>${typeOptions(items)}</select>
+      <input class="input" data-q placeholder="Rechercher…" value="${esc(filter.q)}" type="search">
     </div>`;
-  const bindFilters = (el, redraw) => {
+  };
+  const bindFilters = (el, items, redraw) => {
     $('[data-q]', el).addEventListener('input', (e) => { filter.q = e.target.value; redraw(); });
-    $('[data-cat]', el).onchange = (e) => { filter.category = e.target.value; redraw(); };
+    $('[data-cat]', el).onchange = (e) => { filter.category = e.target.value; filter.type = ''; $('[data-type]', el).innerHTML = typeOptions(items); redraw(); };
+    $('[data-type]', el).onchange = (e) => { filter.type = e.target.value; redraw(); };
   };
   const matches = (x) => (!filter.category || x.category === filter.category)
+    && (!filter.type || x.type === filter.type)
     && (!filter.q || [x.name, x.type, x.reference].join(' ').toLowerCase().includes(filter.q.toLowerCase()));
 
   function drawLibraryTab(tab, all) {
@@ -327,8 +365,7 @@ export async function renderQuick(view, { id }) {
       $$('[data-goto]', tab).forEach((b) => (b.onclick = () => { furnTab = b.dataset.goto; drawFurniture(); }));
       return;
     }
-    const cats = store.categories.filter((c) => all.some((f) => f.category === c.id));
-    tab.innerHTML = `${filtersHTML(cats)}<div class="cards cards--pick" id="lgrid"></div>`;
+    tab.innerHTML = `${filtersHTML(all)}<div class="cards cards--pick" id="lgrid"></div>`;
     const grid = $('#lgrid', tab);
     const redraw = () => {
       const list = all.filter(matches);
@@ -336,7 +373,7 @@ export async function renderQuick(view, { id }) {
       if (q.furniture.libraryId) $(`[data-fid="${CSS.escape(q.furniture.libraryId)}"]`, grid)?.classList.add('selected');
     };
     redraw();
-    bindFilters(tab, redraw);
+    bindFilters(tab, all, redraw);
     grid.addEventListener('click', (e) => {
       const c = e.target.closest('[data-fid]');
       const f = c && all.find((x) => x.id === c.dataset.fid);
@@ -348,24 +385,35 @@ export async function renderQuick(view, { id }) {
 
   function drawCatalogueTab(tab, all) {
     const have = new Map(all.map((f) => [f.id, f]));
-    const cats = store.categories.filter((c) => CATALOGUE_MDF.some((x) => x.category === c.id));
-    tab.innerHTML = `${filtersHTML(cats)}
+    tab.innerHTML = `${filtersHTML(CATALOGUE_MDF)}
       <p class="muted small">Modèles relevés sur mobilierdefrance.com. Au premier choix, la photo est téléchargée et le modèle est ajouté à votre bibliothèque.</p>
       <div class="catpick" id="cgrid"></div>`;
     const grid = $('#cgrid', tab);
+    // vignettes absentes de la bibliothèque : chargées par le relais quand elles apparaissent à l'écran
+    const cfgP = api.settings().then((s) => providerConfig(s, 'gemini'));
+    const io = new IntersectionObserver((entries) => entries.forEach(async (en) => {
+      if (!en.isIntersecting) return;
+      io.unobserve(en.target);
+      const u = await catalogueThumb(en.target.dataset.thumb, await cfgP);
+      if (u && en.target.isConnected) en.target.innerHTML = `<img src="${u}" alt="">`;
+      else if (en.target.isConnected) en.target.innerHTML = '<span class="muted small">Photo indisponible</span>';
+    }), { rootMargin: '200px' });
     const redraw = () => {
+      io.disconnect();
       const list = CATALOGUE_MDF.filter(matches);
       grid.innerHTML = list.map((it) => {
         const f = have.get(it.id);
         const cover = f?.photos?.[f.cover || 0]?.media;
+        const url = !cover && thumbUrl(it);
         return `<button class="catpick__item ${q.furniture.libraryId === it.id ? 'selected' : ''}" data-cid="${esc(it.id)}">
-          <span class="catpick__img">${cover ? `<img ${src(cover)} alt="">` : '<span class="muted small">Photo au premier choix</span>'}</span>
+          <span class="catpick__img" ${url ? `data-thumb="${esc(url)}"` : ''}>${cover ? `<img ${src(cover)} alt="">` : '<span class="spinner spinner--sm"></span>'}</span>
           <span class="catpick__body"><strong>${esc(it.name)}</strong><span class="muted small">${esc(it.type)} · ${furnitureDims(it)}</span></span>
         </button>`;
       }).join('') || '<div class="empty" style="grid-column:1/-1">Aucun modèle ne correspond.</div>';
+      $$('[data-thumb]', grid).forEach((el) => io.observe(el));
     };
     redraw();
-    bindFilters(tab, redraw);
+    bindFilters(tab, CATALOGUE_MDF, redraw);
     grid.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-cid]');
       const it = b && CATALOGUE_MDF.find((x) => x.id === b.dataset.cid);

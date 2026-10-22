@@ -532,3 +532,14 @@ img.img-missing { visibility: hidden; }
 .zone-bar .seg.tools { margin-bottom: 0; }
 .zone-hint { margin: 0 0 10px; }
 @media (max-width: 720px) { .zone-bar { grid-template-columns: 1fr; } }
+.spinner--sm { width: 22px; height: 22px; border-width: 2px; margin: 0; }
+.quickwiz .filters > * { min-width: 160px; }
+/* Réglages › Orientation : « Paysage uniquement » sur tablette tenue à la verticale */
+.rotate-hint { display: none; }
+@media (orientation: portrait) and (min-width: 600px) {
+  .force-landscape.is-touch .rotate-hint { display: flex; position: fixed; inset: 0; z-index: 10000; background: var(--blue); color: #fff; align-items: center; justify-content: center; text-align: center; padding: 32px; }
+  .force-landscape.is-touch body { overflow: hidden; }
+}
+.rotate-hint > div { display: flex; flex-direction: column; gap: 12px; align-items: center; max-width: 420px; }
+.rotate-hint strong { font-family: var(--serif); font-size: 26px; font-weight: 500; }
+.rotate-hint__ico { font-size: 64px; line-height: 1; }
