@@ -3,7 +3,7 @@
 Application web installable (PWA) pour visualiser un nouveau meuble dans une pièce réelle :
 
 1. **La pièce** : photos (import ou prise directe) + longueur, largeur, hauteur sous plafond.
-2. **Le plan** : plan 2D à l'échelle ; meubles présents placés à la main ou détectés par l'IA ; point de vue de la photo.
+2. **Le plan** : plan 2D à l'échelle ; meubles présents placés à la main ou détectés par l'IA (Gemini les dessine en schémas vus de dessus, à la manière des pictogrammes du catalogue : canapé droit, d'angle, méridienne, fauteuil, tables, lit, rangements… ; les tapis sont ignorés) ; point de vue de la photo.
 3. **Aménagement** : ajout d'un meuble (photo en direct, photo de la pellicule ou bibliothèque), en remplacement ou en placement libre, avec rotation, couleur et matière.
 4. **Rendu IA** : retouche de la photo par Gemini, comparaison avant/après, sauvegarde, partage, régénération.
 
@@ -124,6 +124,7 @@ js/library.js      bibliothèque, fiche meuble, catégories
 js/catalogue.js    import du catalogue Mobilier de France
 js/sizes.js        dimensions multiples, compositions modulables (calcul de l'emprise, schéma pour l'IA)
 js/sizes-ui.js     choix des dimensions / éditeur de composition
+js/symbols.js      schémas vus de dessus des meubles (formes du plan)
 js/data/catalogue-mdf.js  sélection du catalogue (noms, cotes, photos)
 js/settings.js     écran Réglages
 js/transfer.js     fenêtres d'export / import

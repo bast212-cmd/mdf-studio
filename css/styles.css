@@ -472,3 +472,17 @@ img.img-missing { visibility: hidden; }
 .modules__btns .icon-btn { width: 28px; height: 28px; font-size: 12px; }
 .modules__btns .icon-btn.on { background: var(--blue); color: #fff; border-color: var(--blue); }
 .modules__btns .icon-btn:disabled { opacity: .35; cursor: default; }
+
+/* Schémas vus de dessus (style pictogrammes du catalogue) */
+.plan-svg .item.has-sym rect.body { fill: rgba(255, 255, 255, .001); stroke: transparent; }
+.plan-svg .item.has-sym.sel rect.body { stroke: #e08a00; stroke-dasharray: 6 4; }
+.plan-svg .item.removed.has-sym rect.body { fill: url(#hatch); stroke: var(--danger); }
+.plan-svg .item.removed .sym, .plan-svg .item.removed .sym-soft { opacity: .55; }
+.plan-svg .sym { fill: #fff; stroke: #33363b; stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: none; }
+.plan-svg .sym-soft { fill: #d9d6cf; stroke: #33363b; stroke-width: 1.4; vector-effect: non-scaling-stroke; pointer-events: none; }
+.plan-svg .sym-line { fill: none; stroke: #6b6f75; stroke-width: 1.1; vector-effect: non-scaling-stroke; pointer-events: none; }
+.plan-svg .sym-back { stroke: #33363b; stroke-width: 4; vector-effect: non-scaling-stroke; pointer-events: none; }
+.plan-svg .sym-other { stroke-dasharray: 5 4; }
+.plan-svg .item.new .sym { fill: #f3f6fb; stroke: var(--blue); }
+.plan-svg .item.new .sym-soft { fill: #c9d6ea; stroke: var(--blue); }
+.plan-svg .item.has-sym .front { display: none; }

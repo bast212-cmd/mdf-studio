@@ -6,6 +6,7 @@ import { capturePhotos } from './camera.js';
 import { src, getMediaBlob, shareOrDownload } from './data/media.js';
 import { isModular, defaultModules, defaultSize, applyFootprint } from './sizes.js';
 import { placementPanelHTML, bindPlacementPanel } from './sizes-ui.js';
+import { SHAPES, SIDED, guessShape } from './symbols.js';
 import { PlanEditor, defaultPlan, clampPlan, clampItem } from './plan.js';
 import { openFurnitureForm, pickFurniture } from './library.js';
 
@@ -260,6 +261,10 @@ function step2({ room, body, save, go }) {
       <div class="panel" id="props">
         <h3>${esc(sel.name)}</h3>
         <div class="field"><label>Nom</label><input data-p="name" value="${esc(sel.name)}"></div>
+        <div class="grid-2">
+          <div class="field"><label>Forme sur le plan</label><select data-p="shape">${SHAPES.map(([k, l]) => `<option value="${k}" ${(sel.shape || guessShape(sel.name)) === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+          ${SIDED.has(sel.shape || guessShape(sel.name)) ? `<div class="field"><label>${(sel.shape || guessShape(sel.name)) === 'sofa_corner' ? 'Angle' : 'Méridienne'} (vu de face)</label><select data-p="side"><option value="left" ${sel.side === 'left' ? 'selected' : ''}>à gauche</option><option value="right" ${sel.side !== 'left' ? 'selected' : ''}>à droite</option></select></div>` : '<div></div>'}
+        </div>
         ${itemPropsCommon(sel)}
         <label class="check"><input type="checkbox" data-p="remove" ${sel.remove ? 'checked' : ''}> Retirer ce meuble de la photo</label>
         <button class="btn btn--danger btn--sm" data-del>Supprimer du plan</button>
@@ -279,7 +284,10 @@ function step2({ room, body, save, go }) {
     el.querySelectorAll('[data-ref]').forEach((b) => (b.onclick = () => { room.refPhoto = Number(b.dataset.ref); save(); side(); }));
     el.querySelectorAll('[data-sel]').forEach((li) => (li.onclick = () => editor.select(li.dataset.sel)));
     if (sel) {
-      bindProps($('#props', el), sel, editor, save, (p) => { if (p === 'name' || p === 'remove') { editor.render(); } });
+      bindProps($('#props', el), sel, editor, save, (p) => {
+        if (p === 'name' || p === 'remove' || p === 'side') editor.render();
+        if (p === 'shape') { editor.render(); side(); }
+      });
       $('[data-del]', el).onclick = () => {
         room.plan.items = room.plan.items.filter((i) => i.id !== sel.id);
         room.plan.items.forEach((i) => { if (i.replacesId === sel.id) delete i.replacesId; });
@@ -289,7 +297,8 @@ function step2({ room, body, save, go }) {
     $('#addex', el).addEventListener('submit', (e) => {
       e.preventDefault();
       const f = e.target;
-      const it = { id: 'e' + uid(), kind: 'existing', name: f.name.value.trim(), w: num(f.w.value), d: num(f.d.value), h: 80, x: room.dims.length / 2, y: room.dims.width / 2, rot: 0 };
+      const name = f.name.value.trim();
+      const it = { id: 'e' + uid(), kind: 'existing', name, shape: guessShape(name), w: num(f.w.value), d: num(f.d.value), h: 80, x: room.dims.length / 2, y: room.dims.width / 2, rot: 0 };
       clampItem(it, room.dims.length, room.dims.width);
       room.plan.items.push(it);
       save(); editor.select(it.id);
