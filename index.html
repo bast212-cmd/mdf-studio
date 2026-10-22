@@ -27,7 +27,7 @@
         <!-- Logo officiel : le carré + le nom (un fichier par mot) dans img/ :
              logo-carre, logo-mobilier, logo-de, logo-france (.svg, .png ou .webp).
              Le nom passe à la ligne quand la place manque, sans jamais déformer le logo.
-             À défaut : logo complet en une image (img/logo.* puis logo du site), puis le nom en texte. -->
+             À défaut : carré du logo complet (img/logo.* puis logo du site) suivi du nom en Montserrat, plus petit. -->
         <span class="brand__lockup">
           <img class="brand__mark" alt="" data-logo="logo-carre">
           <span class="brand__words" aria-label="Mobilier de France">
@@ -35,7 +35,7 @@
             <span class="w-grp"><img alt="de" data-logo="logo-de"><img alt="France" data-logo="logo-france"></span>
           </span>
         </span>
-        <img alt="Mobilier de France" class="brand__logo" hidden>
+        <span class="brand__sq" hidden><img alt=""></span>
         <span class="brand__text" aria-label="Mobilier de France" hidden><span class="bt-1">Mobilier</span><span class="bt-2"><span class="bt-de">de</span> <span class="bt-fr">France</span></span></span>
         <span class="brand__sub">Studio IA</span>
       </a>

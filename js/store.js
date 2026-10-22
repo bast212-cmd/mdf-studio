@@ -2,7 +2,7 @@
 import { api } from './api.js';
 
 // À incrémenter avec VERSION dans sw.js à chaque mise en ligne
-export const APP_VERSION = '2.6.1';
+export const APP_VERSION = '2.6.2';
 
 export const store = {
   categories: [],

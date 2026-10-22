@@ -373,8 +373,8 @@ img.img-missing { visibility: hidden; }
 .brand img { max-width: none; flex: none; }
 .brand__lockup { display: none; align-items: center; gap: 12px; }
 .brand--words .brand__lockup { display: inline-flex; }
-.brand__logo[hidden], .brand__text[hidden] { display: none !important; }
-.brand--words .brand__logo, .brand--words .brand__text, .brand--image .brand__text { display: none; }
+.brand__text[hidden] { display: none !important; }
+.brand--words .brand__text, .brand--words .brand__sq { display: none !important; }
 
 /* Carré : hauteur fixe, largeur proportionnelle */
 .brand__mark { height: 50px; width: auto; }
@@ -401,17 +401,30 @@ img.img-missing { visibility: hidden; }
   .brand__words { --wh: 13px; }
 }
 
-/* Logo complet en une seule image (img/logo.* ou logo du site) : réduit en hauteur, jamais écrasé */
-.brand--image .brand__logo { height: 48px; width: auto; max-width: none; object-fit: contain; }
-@media (max-width: 1180px) { .brand--image .brand__logo { height: 42px; } }
-@media (max-width: 720px) { .brand--image .brand__logo { height: 34px; } }
-@media (max-width: 380px) { .brand--image .brand__logo { height: 28px; } }
+/* Logo du site : seul le carré est affiché (image recadrée à gauche, même échelle),
+   suivi du nom écrit en Montserrat (police proche de celle du logo), plus petit */
+.brand__sq { display: none; flex: none; height: var(--sq, 48px); width: calc(var(--sq, 48px) * 1.04); overflow: hidden; }
+.brand--site .brand__sq { display: block; }
+.brand__sq[hidden] { display: none !important; }
+.brand__sq img { height: 100%; width: auto; max-width: none; display: block; }
+@media (max-width: 1180px) { .brand { --sq: 42px; } }
+@media (max-width: 720px) { .brand { --sq: 34px; } }
 
-/* Dernier recours (aucune image disponible) : le nom en texte, réparti sur plusieurs lignes */
-.brand__text { display: inline-flex; align-items: baseline; column-gap: .28em; font-family: var(--serif); font-size: 26px; line-height: 1; color: var(--blue); white-space: nowrap; }
-.brand__text > span { display: inline-flex; align-items: baseline; column-gap: .28em; }
-@media (max-width: 1180px) { .brand__text { flex-direction: column; align-items: flex-start; row-gap: 2px; font-size: 22px; } }
-@media (max-width: 720px) { .brand__text { font-size: 19px; } }
+/* Nom en texte (avec le carré du site, ou seul en dernier recours) */
+.brand__text { display: inline-flex; align-items: baseline; column-gap: .3em; font-family: var(--sans); font-weight: 600; font-size: var(--ts, 21px); line-height: 1.05; color: #15264a; letter-spacing: -.005em; white-space: nowrap; }
+.brand__text > span { display: inline-flex; align-items: baseline; column-gap: .3em; }
+.brand__text .bt-de { font-style: normal; font-size: 1em; color: inherit; }
+@media (max-width: 1180px) { .brand { --ts: 18px; } }
+@media (max-width: 720px) { .brand { --ts: 15px; gap: 10px; } }
+/* Très petit écran : « Mobilier » / « de France » sur deux lignes */
+@media (max-width: 360px) {
+  .brand__text { flex-direction: column; align-items: flex-start; row-gap: 1px; }
+}
+
+/* Le menu reste toujours accessible : l'en-tête ne déborde jamais */
+.header__inner { min-width: 0; }
+.burger { flex: none; }
+.brand { max-width: calc(100% - 56px); }
 
 /* Projet complet : trois choix côte à côte (photo, pellicule, bibliothèque) */
 .choice--3 { grid-template-columns: repeat(3, 1fr); }

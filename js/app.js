@@ -157,16 +157,18 @@ async function setupLogo() {
     brand.classList.add('brand--words');
     return;
   }
-  // 2. Logo complet en une image (proportions conservées)
+  // 2. Logo complet en une image : on n'en garde que le carré (à gauche, à la même échelle),
+  //    le nom est écrit à côté en Montserrat, plus petit, pour laisser la place au menu
+  brand.querySelector('.brand__text').hidden = false;
   const full = (await loadImage('logo')) || (await loadURL(SITE_LOGO));
   if (full) {
-    const im = brand.querySelector('.brand__logo');
-    im.src = full; im.hidden = false;
-    brand.classList.add('brand--image');
+    const sq = brand.querySelector('.brand__sq');
+    sq.querySelector('img').src = full;
+    sq.hidden = false;
+    brand.classList.add('brand--site');
     return;
   }
-  // 3. Dernier recours : le nom en texte
-  brand.querySelector('.brand__text').hidden = false;
+  // 3. Dernier recours : le nom seul en texte
   brand.classList.add('brand--text');
 }
 

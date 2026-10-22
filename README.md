@@ -151,4 +151,4 @@ Pour cela, le logo est découpé en quatre fichiers à déposer dans `img/` (SVG
 - `logo-carre` : le carré seul ;
 - `logo-mobilier`, `logo-de`, `logo-france` : chaque mot du nom, **tous rognés à la même hauteur** (même bande verticale) pour garder la même échelle.
 
-Sans ces fichiers, l'en-tête affiche le logo complet en une image (`img/logo.*`, sinon celui du site mobilierdefrance.com), réduit proportionnellement sur petit écran, et en tout dernier recours le nom en texte. Assurez-vous d'avoir le droit d'utiliser la marque.
+Sans ces fichiers, l'en-tête prend le logo complet (`img/logo.*`, sinon celui du site mobilierdefrance.com) et n'en affiche que le carré, à la même échelle ; le nom est écrit à côté en Montserrat (police proche de celle du logo), plus petit, pour que le menu reste toujours accessible. Sur très petit écran, il passe sur deux lignes. Assurez-vous d'avoir le droit d'utiliser la marque.
