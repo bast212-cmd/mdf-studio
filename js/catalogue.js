@@ -47,6 +47,49 @@ async function ensureCategories(items) {
   await store.loadCategories();
 }
 
+/**
+ * Ajoute un modèle du catalogue à la bibliothèque, ou complète celui qui y est déjà.
+ * Renvoie { rec, photo, pictoMissing } ; photo = true (récupérée), false (échec) ou null (déjà présente).
+ */
+async function importItem(it, old, cfg) {
+  // photo : seulement si elle manque
+  let photos = old?.photos || [];
+  let photo = null;
+  if (!photos.length) { photos = await downloadPhoto(it, cfg); photo = photos.length > 0; }
+  // éléments / dimensions : ceux du catalogue si le modèle local n'en a pas encore ;
+  // sinon on ne fait que compléter les schémas manquants (les modifications locales sont gardées)
+  let sizes = old?.sizes;
+  let pictoMissing = 0;
+  if (it.sizes?.length) {
+    if (!sizes?.length) { const [sz, miss] = await downloadSizes(it, cfg); sizes = sz; pictoMissing += miss; }
+    else {
+      for (const s of sizes) {
+        if (!s.picto && s.pictoUrl) {
+          try { s.picto = await putMedia(await fetchCatalogueImage(s.pictoUrl, cfg)); delete s.pictoUrl; } catch { pictoMissing++; }
+        }
+      }
+    }
+  }
+  const { photoUrls, sizes: _s, ...data } = it;
+  const rec = old
+    ? { ...old, photos, cover: old.cover || 0, ...(sizes ? { sizes } : {}), updatedAt: now() }
+    : { ...data, reference: '', photos, cover: 0, ...(sizes ? { sizes } : {}), createdAt: now(), updatedAt: now() };
+  await idb.put('furniture', rec);
+  return { rec, photo, pictoMissing };
+}
+
+/** Un modèle du catalogue, prêt à l'emploi : pris dans la bibliothèque, ou importé s'il n'y est pas (Rendu rapide) */
+export async function catalogueFurniture(it) {
+  const old = await idb.get('furniture', it.id);
+  if (old?.photos?.length) return old;
+  if (!navigator.onLine) throw new Error('Connexion internet nécessaire pour récupérer la photo du modèle.');
+  await ensureCategories([it]);
+  const { rec } = await importItem(it, old, providerConfig(await api.settings(), 'gemini'));
+  api.notifyImport();
+  if (!rec.photos.length) throw new Error("Photo du modèle non récupérée : vérifiez la connexion et le code d'accès du relais (Réglages).");
+  return rec;
+}
+
 export async function catalogueDialog() {
   await store.loadCategories();
   const existing = new Map((await api.furniture()).map((f) => [f.id, f]));
@@ -131,28 +174,10 @@ export async function catalogueDialog() {
         const old = existing.get(it.id);
         if (old && complete(it, old)) { skipped++; }
         else {
-          // photo : seulement si elle manque
-          let photos = old?.photos || [];
-          if (!photos.length) { photos = await downloadPhoto(it, cfg); photos.length ? photosOk++ : noPhoto++; }
-          // éléments / dimensions : ceux du catalogue si le modèle local n'en a pas encore ;
-          // sinon on ne fait que compléter les schémas manquants (les modifications locales sont gardées)
-          let sizes = old?.sizes;
-          if (it.sizes?.length) {
-            if (!sizes?.length) { const [sz, miss] = await downloadSizes(it, cfg); sizes = sz; pictoMissing += miss; }
-            else {
-              for (const s of sizes) {
-                if (!s.picto && s.pictoUrl) {
-                  try { s.picto = await putMedia(await fetchCatalogueImage(s.pictoUrl, cfg)); delete s.pictoUrl; } catch { pictoMissing++; }
-                }
-              }
-            }
-          }
-          const { photoUrls, sizes: _s, ...data } = it;
-          const rec = old
-            ? { ...old, photos, cover: old.cover || 0, ...(sizes ? { sizes } : {}), updatedAt: now() }
-            : { ...data, reference: '', photos, cover: 0, ...(sizes ? { sizes } : {}), createdAt: now(), updatedAt: now() };
-          await idb.put('furniture', rec);
-          existing.set(it.id, rec);
+          const r = await importItem(it, old, cfg);
+          if (r.photo === true) photosOk++; else if (r.photo === false) noPhoto++;
+          pictoMissing += r.pictoMissing;
+          existing.set(it.id, r.rec);
           if (!old) added++;
           imported = true;
         }
