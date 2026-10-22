@@ -276,7 +276,7 @@ details.prompt pre { white-space: pre-wrap; font-size: 12px; background: var(--s
   .app { padding: 20px 16px 48px; }
   .header__inner { padding: 10px 16px; gap: 12px; }
   .brand__logo { height: 36px; }
-  .brand__sub { display: none; }
+
   .burger { display: block; }
   .nav { display: none; position: absolute; top: 100%; left: 0; right: 0; background: #fff; flex-direction: column; gap: 0; border-bottom: 1px solid var(--line); padding: 8px 16px; }
   .nav.open { display: flex; }
@@ -534,12 +534,51 @@ img.img-missing { visibility: hidden; }
 @media (max-width: 720px) { .zone-bar { grid-template-columns: 1fr; } }
 .spinner--sm { width: 22px; height: 22px; border-width: 2px; margin: 0; }
 .quickwiz .filters > * { min-width: 160px; }
-/* Réglages › Orientation : « Paysage uniquement » sur tablette tenue à la verticale */
-.rotate-hint { display: none; }
-@media (orientation: portrait) and (min-width: 600px) {
-  .force-landscape.is-touch .rotate-hint { display: flex; position: fixed; inset: 0; z-index: 10000; background: var(--blue); color: #fff; align-items: center; justify-content: center; text-align: center; padding: 32px; }
-  .force-landscape.is-touch body { overflow: hidden; }
+
+/* ==========================================================
+   Habillage « Showroom » : couleurs de mobilierdefrance.com
+   (marine #1d2740, Playfair Display + Montserrat), fond lin, touche cognac
+   ========================================================== */
+:root {
+  --blue: #1d2740;
+  --blue-dark: #00182a;
+  --blue-soft: #e9ebf0;
+  --sand: #f5f1ea;
+  --sand-dark: #e6ddcf;
+  --line: #e4ddd1;
+  --cognac: #b5603f;
+  --page: #f8f5f0;
 }
-.rotate-hint > div { display: flex; flex-direction: column; gap: 12px; align-items: center; max-width: 420px; }
-.rotate-hint strong { font-family: var(--serif); font-size: 26px; font-weight: 500; }
-.rotate-hint__ico { font-size: 64px; line-height: 1; }
+body { background: var(--page); }
+.header { background: #fff; }
+.topbar { background: var(--blue); }
+
+/* Nom du magasin sous « Mobilier de France » */
+.brand__id { display: inline-flex; flex-direction: column; justify-content: center; gap: 3px; min-width: 0; }
+.brand__sub { border-left: 0; padding-left: 0; font-size: 10px; letter-spacing: .18em; color: var(--gray); line-height: 1.2; white-space: nowrap; }
+.brand__text { color: var(--blue); }
+@media (max-width: 720px) { .brand__sub { font-size: 9px; letter-spacing: .14em; } }
+
+/* Surfaces : cartes blanches sur fond lin */
+.panel, .card, .choice button, .dropzone, .empty, .catpick__item, .wiz-photo { background: #fff; }
+.choice button { border-color: var(--line); }
+.choice button:hover { background: #fff; border-color: var(--blue); }
+.panel--sand { background: var(--sand); border-color: var(--sand-dark); }
+.reassurance { background: #fff; }
+.card { border-color: var(--line); }
+.card:hover { box-shadow: 0 6px 24px rgba(29, 39, 64, .08); }
+
+/* Étapes : libellés seuls, coche quand l'étape est faite, soulignement cognac sur l'étape en cours */
+.stepper button .n { display: none; }
+.stepper button { gap: 6px; justify-content: center; text-align: center; }
+.stepper button.done .t::before { content: '✓ '; color: var(--cognac); }
+.stepper button.active { color: var(--blue); border-color: var(--cognac); }
+
+/* Sélection : contour cognac */
+.card.selected, .catpick__item.selected { border-color: var(--cognac); box-shadow: 0 0 0 2px var(--cognac); }
+.catpick__item:hover { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); }
+.selbar { background: #fff; border: 1px solid var(--line); border-left: 3px solid var(--cognac); }
+.tag-ok { background: #f6e9e2; color: var(--cognac); }
+
+/* Barre de navigation du Rendu rapide sur fond lin */
+.wiz-nav { background: var(--page); }
