@@ -7,7 +7,7 @@ Application web installable (PWA) pour visualiser un nouveau meuble dans une pi�
 3. **Aménagement** : ajout d'un meuble (photo en direct, photo de la pellicule ou bibliothèque), en remplacement ou en placement libre, avec rotation, couleur et matière.
 4. **Rendu IA** : retouche de la photo par Gemini, comparaison avant/après, sauvegarde, partage, régénération.
 
-**Rendu rapide** (bouton sur l'accueil) : photo de la pièce › zone tracée au doigt sur la photo (remplacer ce qui s'y trouve, ou ajouter) › photo du meuble › photo de texture facultative › rendu. Sans plan ni bibliothèque. Les rendus rapides apparaissent dans « Mes projets » et dans les sauvegardes comme les autres.
+**Rendu rapide** (bouton sur l'accueil), un écran par étape pensé pour l'iPad : la pièce (appareil photo, pellicule ou pièce récente) › la zone tracée au doigt (remplacer ce qui s'y trouve, ou ajouter) › le meuble (bibliothèque, catalogue Mobilier de France ou photo) › finition facultative (matière, consignes) › résultat avant/après, avec « Essayer un autre meuble ». Sans plan. Les rendus rapides apparaissent dans « Mes projets » et dans les sauvegardes comme les autres.
 
 **Aucun serveur.** Tout tourne dans le navigateur de chaque appareil :
 
