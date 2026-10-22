@@ -145,10 +145,10 @@ Le code est organisé pour l'ajouter sans tout refaire :
 Un module `js/sync/drive.js` pourra : se connecter (Google Identity Services, client OAuth à créer dans Google Cloud), écouter `onChange`, envoyer le paquet de la bibliothèque dans un dossier Drive, et à l'ouverture récupérer celui des autres appareils pour le fusionner avec `planImport` / `applyImport`, en appliquant les `tombstones`.
 
 ### Logo
-Le logo s'anime selon la taille de l'écran : carré et nom côte à côte sur ordinateur, « Studio IA » sous le nom sur tablette, version resserrée sur téléphone, carré seul sur très petit écran. Quand on fait défiler la page, le nom se replie derrière le carré et réapparaît au survol (ordinateur).
+L'en-tête affiche le logo officiel Mobilier de France : le carré et le nom dans sa typographie. Il n'est jamais déformé : quand la place manque, le nom passe à la ligne (« Mobilier » / « de France » sur tablette et téléphone, un mot par ligne sur très petit écran) et le carré garde sa forme.
 
-Pour l'activer, déposez dans `img/` les deux parties du logo officiel, au format SVG (idéal), PNG ou WebP, sur fond transparent et rognées au plus juste :
-- `img/logo-carre.svg` (ou .png) : le logo carré seul ;
-- `img/logo-nom.svg` (ou .png) : le nom « Mobilier de France » seul, dans sa typographie.
+Pour cela, le logo est découpé en quatre fichiers à déposer dans `img/` (SVG idéalement, sinon PNG ou WebP, fond transparent) :
+- `logo-carre` : le carré seul ;
+- `logo-mobilier`, `logo-de`, `logo-france` : chaque mot du nom, **tous rognés à la même hauteur** (même bande verticale) pour garder la même échelle.
 
-Sans ces fichiers, l'en-tête affiche `img/logo.svg` / `img/logo.png` (logo complet, proportions toujours respectées) s'il existe, sinon le nom en texte, réparti volontairement sur une, deux ou trois lignes selon la largeur (« Mobilier » / « de France »). Assurez-vous d'avoir le droit d'utiliser la marque.
+Sans ces fichiers, l'en-tête affiche le logo complet en une image (`img/logo.*`, sinon celui du site mobilierdefrance.com), réduit proportionnellement sur petit écran, et en tout dernier recours le nom en texte. Assurez-vous d'avoir le droit d'utiliser la marque.

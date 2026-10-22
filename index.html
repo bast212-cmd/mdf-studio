@@ -24,14 +24,19 @@
   <header class="header">
     <div class="header__inner">
       <a href="#/" class="brand" id="brand" aria-label="Accueil, Mobilier de France Studio IA">
-        <!-- Logo en deux parties (img/logo-carre.* et img/logo-nom.*), animé selon la taille de l'écran.
-             S'ils sont absents : logo complet img/logo.*, sinon le nom en texte (mots répartis sur plusieurs lignes selon la largeur). -->
+        <!-- Logo officiel : le carré + le nom (un fichier par mot) dans img/ :
+             logo-carre, logo-mobilier, logo-de, logo-france (.svg, .png ou .webp).
+             Le nom passe à la ligne quand la place manque, sans jamais déformer le logo.
+             À défaut : logo complet en une image (img/logo.* puis logo du site), puis le nom en texte. -->
         <span class="brand__lockup">
           <img class="brand__mark" alt="" data-logo="logo-carre">
-          <span class="brand__wordwrap"><img class="brand__word" alt="Mobilier de France" data-logo="logo-nom"></span>
+          <span class="brand__words" aria-label="Mobilier de France">
+            <img alt="Mobilier" data-logo="logo-mobilier">
+            <span class="w-grp"><img alt="de" data-logo="logo-de"><img alt="France" data-logo="logo-france"></span>
+          </span>
         </span>
         <img alt="Mobilier de France" class="brand__logo" hidden>
-        <span class="brand__text" aria-label="Mobilier de France"><span class="bt-1">Mobilier</span><span class="bt-2"><span class="bt-de">de</span> <span class="bt-fr">France</span></span></span>
+        <span class="brand__text" aria-label="Mobilier de France" hidden><span class="bt-1">Mobilier</span><span class="bt-2"><span class="bt-de">de</span> <span class="bt-fr">France</span></span></span>
         <span class="brand__sub">Studio IA</span>
       </a>
       <nav class="nav" id="nav">

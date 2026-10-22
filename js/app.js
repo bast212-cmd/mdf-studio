@@ -143,31 +143,31 @@ function loadImage(base) {
     tryNext(0);
   });
 }
+// Logo officiel du site, utilisé tant que les fichiers découpés ne sont pas dans img/
+const SITE_LOGO = 'https://www.mobilierdefrance.com/themes/mobilierdefrance/assets/img/logo_blue.png';
+const loadURL = (src) => new Promise((ok) => { const im = new Image(); im.onload = () => ok(src); im.onerror = () => ok(null); im.src = src; });
+
 async function setupLogo() {
   const brand = $('#brand');
-  const imgs = [...brand.querySelectorAll('img[data-logo]')];
-  const srcs = await Promise.all(imgs.map((im) => loadImage(im.dataset.logo)));
+  // 1. Carré + nom mot par mot : le nom peut passer à la ligne sans rien déformer
+  const parts = [...brand.querySelectorAll('img[data-logo]')];
+  const srcs = await Promise.all(parts.map((im) => loadImage(im.dataset.logo)));
   if (srcs.every(Boolean)) {
-    imgs.forEach((im, i) => { im.src = srcs[i]; });
-    brand.classList.add('brand--split', 'brand--intro');
-    setTimeout(() => brand.classList.remove('brand--intro'), 1400);
-  } else {
-    // logo complet en une image, sinon le nom en texte (affiché par défaut)
-    const full = await loadImage('logo');
-    if (full) { const im = brand.querySelector('.brand__logo'); im.src = full; im.hidden = false; brand.classList.add('brand--image'); }
-    else brand.classList.add('brand--text', 'brand--intro');
-    setTimeout(() => brand.classList.remove('brand--intro'), 1400);
+    parts.forEach((im, i) => { im.src = srcs[i]; });
+    brand.classList.add('brand--words');
+    return;
   }
-  // En-tête compact quand on fait défiler la page (avec une marge pour éviter le clignotement)
-  const header = document.querySelector('.header');
-  let compact = false;
-  const onScroll = () => {
-    const y = window.scrollY;
-    if (!compact && y > 80) { compact = true; header.classList.add('header--compact'); }
-    else if (compact && y < 20) { compact = false; header.classList.remove('header--compact'); }
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
+  // 2. Logo complet en une image (proportions conservées)
+  const full = (await loadImage('logo')) || (await loadURL(SITE_LOGO));
+  if (full) {
+    const im = brand.querySelector('.brand__logo');
+    im.src = full; im.hidden = false;
+    brand.classList.add('brand--image');
+    return;
+  }
+  // 3. Dernier recours : le nom en texte
+  brand.querySelector('.brand__text').hidden = false;
+  brand.classList.add('brand--text');
 }
 
 // ---------- Service worker (hors ligne + installation) ----------

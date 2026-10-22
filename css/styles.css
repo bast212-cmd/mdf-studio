@@ -347,70 +347,6 @@ img.img-missing { visibility: hidden; }
 .zone-editor.tool-keep { cursor: cell; }
 .seg.tools button.sel.keep { background: #0050ff; }
 
-/* ==========================================================
-   Logo dynamique : carré + nom, qui s'adaptent à l'écran et au défilement
-   (actif quand img/logo-carre.* et img/logo-nom.* sont présents)
-   ========================================================== */
-.header, .header__inner { transition: padding .35s ease, box-shadow .35s ease; }
-.brand__lockup { display: none; align-items: center; gap: 14px; }
-.brand--split .brand__lockup { display: inline-flex; }
-.brand--split .brand__logo, .brand--split .brand__text { display: none; }
-.brand__mark { height: 52px; width: auto; flex: none; transition: height .35s cubic-bezier(.2, .8, .2, 1), transform .5s cubic-bezier(.2, .8, .2, 1); }
-.brand__wordwrap { display: block; overflow: hidden; max-width: 320px; transition: max-width .45s cubic-bezier(.2, .8, .2, 1), opacity .3s ease; }
-.brand__word { height: 24px; width: auto; max-width: none; transition: height .35s cubic-bezier(.2, .8, .2, 1), transform .45s cubic-bezier(.2, .8, .2, 1); }
-.brand__sub { transition: opacity .3s ease, max-width .4s ease, padding .4s ease, margin .4s ease; white-space: nowrap; overflow: hidden; max-width: 140px; }
-
-/* Survol : le carré se redresse légèrement, le nom glisse vers lui */
-.brand--split:hover .brand__mark { transform: rotate(-4deg) scale(1.05); }
-.brand--split:hover .brand__word { transform: translateX(-3px); }
-
-/* Apparition au chargement : le carré arrive, puis le nom se déroule depuis le carré */
-.brand--split.brand--intro .brand__mark { animation: mark-in .6s cubic-bezier(.2, .8, .2, 1) both; }
-.brand--split.brand--intro .brand__word { animation: word-in .7s .25s cubic-bezier(.2, .8, .2, 1) both; }
-@keyframes mark-in { from { opacity: 0; transform: scale(.7) rotate(-8deg); } to { opacity: 1; transform: none; } }
-@keyframes word-in { from { opacity: 0; clip-path: inset(0 100% 0 0); transform: translateX(-12px); } to { opacity: 1; clip-path: inset(0 0 0 0); transform: none; } }
-
-/* En-tête compact après défilement : le carré reste seul, le nom se replie derrière lui */
-.header--compact { box-shadow: 0 4px 18px rgba(10, 30, 60, .07); }
-.header--compact .brand__logo { height: 38px; }
-.header--compact .brand--split .brand__mark { height: 38px; }
-.header--compact .brand--split .brand__wordwrap { max-width: 0; opacity: 0; }
-.header--compact .brand--split .brand__word { transform: translateX(-40%); }
-.header--compact .brand__sub { opacity: 0; max-width: 0; padding-left: 0; border-left-color: transparent; margin-left: -14px; }
-/* …et réapparaît au survol de l'en-tête compact (ordinateur) */
-@media (hover: hover) {
-  .header--compact .brand--split:hover .brand__wordwrap { max-width: 320px; opacity: 1; }
-  .header--compact .brand--split:hover .brand__word { transform: none; }
-}
-
-/* Tablette (iPad portrait, petits portables) : nom plus fin, « Studio IA » sous le nom */
-@media (max-width: 1180px) {
-  .brand__mark { height: 46px; }
-  .brand__word { height: 20px; }
-  .brand--split { position: relative; }
-  .brand--split .brand__sub { position: absolute; left: 60px; top: 100%; margin-top: 2px; border: 0; padding: 0; font-size: 9px; letter-spacing: .3em; }
-  .nav { gap: 22px; }
-}
-/* Téléphone : carré + nom compact ; « Studio IA » masqué */
-@media (max-width: 720px) {
-  .brand__mark { height: 38px; }
-  .brand__word { height: 16px; }
-  .brand__lockup { gap: 10px; }
-  .brand--split .brand__sub { display: none; }
-}
-/* Très petit écran : le carré seul */
-@media (max-width: 380px) {
-  .brand--split .brand__wordwrap { max-width: 0; opacity: 0; }
-}
-/* Mode paysage très bas (téléphone couché) : toujours compact */
-@media (max-height: 480px) and (orientation: landscape) {
-  .brand__mark { height: 34px; }
-  .brand--split .brand__wordwrap { max-width: 0; opacity: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .brand__mark, .brand__word, .brand__wordwrap, .brand__sub, .header__inner { transition: none !important; animation: none !important; }
-}
-
 /* Menu : jamais sur deux lignes ; menu « burger » dès la tablette portrait */
 .nav a { white-space: nowrap; }
 @media (max-width: 1180px) { .nav a { font-size: 12px; letter-spacing: .06em; } }
@@ -430,40 +366,52 @@ img.img-missing { visibility: hidden; }
 @media (max-width: 720px) { .header__inner { min-height: 60px; padding-top: 0; padding-bottom: 0; } }
 
 /* ==========================================================
-   Logo : proportions toujours respectées, nom réparti sur plusieurs lignes
+   Logo Mobilier de France : carré + nom, sans jamais déformer.
+   Quand la place manque, le nom passe à la ligne au lieu d'être écrasé.
    ========================================================== */
 .brand { flex: none; min-width: 0; }
-.brand__logo, .brand__mark, .brand__word { max-width: none; flex: none; object-fit: contain; }
-.brand__logo[hidden], .brand--split .brand__text, .brand--image .brand__text { display: none; }
-.brand__text { display: inline-flex; align-items: baseline; column-gap: .28em; font-family: var(--serif); font-size: 26px; line-height: 1; color: var(--blue); white-space: nowrap; letter-spacing: .01em; transition: font-size .35s cubic-bezier(.2, .8, .2, 1), letter-spacing .35s ease; }
-.brand__text > span { display: inline-flex; align-items: baseline; column-gap: .28em; }
-.bt-de { font-style: italic; font-size: .78em; color: #4b6c97; }
-.brand--text:hover .brand__text { letter-spacing: .04em; }
-.brand--text.brand--intro .bt-1 { animation: word-in .6s cubic-bezier(.2, .8, .2, 1) both; }
-.brand--text.brand--intro .bt-2 { animation: word-in .7s .2s cubic-bezier(.2, .8, .2, 1) both; }
-/* Tablette : « Mobilier » / « de France » sur deux lignes */
+.brand img { max-width: none; flex: none; }
+.brand__lockup { display: none; align-items: center; gap: 12px; }
+.brand--words .brand__lockup { display: inline-flex; }
+.brand__logo[hidden], .brand__text[hidden] { display: none !important; }
+.brand--words .brand__logo, .brand--words .brand__text, .brand--image .brand__text { display: none; }
+
+/* Carré : hauteur fixe, largeur proportionnelle */
+.brand__mark { height: 50px; width: auto; }
+/* Nom : chaque mot est une image à la même échelle → mêmes proportions sur une ou plusieurs lignes */
+.brand__words { display: inline-flex; flex-wrap: nowrap; align-items: flex-end; column-gap: var(--wgap, 7px); row-gap: 3px; }
+.brand__words .w-grp { display: inline-flex; align-items: flex-end; column-gap: var(--wgap, 7px); }
+.brand__words img { height: var(--wh, 22px); width: auto; display: block; }
+
+/* Tablette et petits portables : « Mobilier » / « de France » sur deux lignes */
 @media (max-width: 1180px) {
-  .brand__text { flex-direction: column; align-items: flex-start; row-gap: 2px; font-size: 22px; line-height: .98; }
-  .bt-2 { padding-left: .9em; }
-  .brand--text { position: relative; }
-  .brand--text .brand__sub { margin-left: 4px; }
+  .brand__mark { height: 50px; }
+  .brand__words { flex-direction: column; align-items: flex-start; --wh: 20px; --wgap: 6px; }
 }
-/* Téléphone : deux lignes plus compactes */
+/* Téléphone : deux lignes, plus petites */
 @media (max-width: 720px) {
-  .brand__text { font-size: 19px; }
+  .brand__mark { height: 42px; }
+  .brand__lockup { gap: 9px; }
+  .brand__words { --wh: 17px; --wgap: 5px; row-gap: 2px; }
 }
-/* Très petit écran : trois lignes, « de » en petit entre les deux */
+/* Très petit écran : un mot par ligne */
 @media (max-width: 380px) {
-  .brand__text { font-size: 17px; }
-  .bt-2 { flex-direction: column; align-items: flex-start; padding-left: 0; row-gap: 1px; }
-  .bt-de { font-size: .7em; padding-left: 1.1em; }
+  .brand__mark { height: 46px; }
+  .brand__words, .brand__words .w-grp { flex-direction: column; align-items: flex-start; row-gap: 2px; }
+  .brand__words { --wh: 13px; }
 }
-/* En-tête compact au défilement : le nom se resserre sans changer de forme */
-.header--compact .brand__text { font-size: 19px; }
-@media (max-width: 720px) { .header--compact .brand__text { font-size: 16px; } }
-/* Logo complet en image : hauteur fixe, largeur proportionnelle */
-.brand--image .brand__logo { height: 48px; width: auto; }
-@media (max-width: 720px) { .brand--image .brand__logo { height: 36px; } }
+
+/* Logo complet en une seule image (img/logo.* ou logo du site) : réduit en hauteur, jamais écrasé */
+.brand--image .brand__logo { height: 48px; width: auto; max-width: none; object-fit: contain; }
+@media (max-width: 1180px) { .brand--image .brand__logo { height: 42px; } }
+@media (max-width: 720px) { .brand--image .brand__logo { height: 34px; } }
+@media (max-width: 380px) { .brand--image .brand__logo { height: 28px; } }
+
+/* Dernier recours (aucune image disponible) : le nom en texte, réparti sur plusieurs lignes */
+.brand__text { display: inline-flex; align-items: baseline; column-gap: .28em; font-family: var(--serif); font-size: 26px; line-height: 1; color: var(--blue); white-space: nowrap; }
+.brand__text > span { display: inline-flex; align-items: baseline; column-gap: .28em; }
+@media (max-width: 1180px) { .brand__text { flex-direction: column; align-items: flex-start; row-gap: 2px; font-size: 22px; } }
+@media (max-width: 720px) { .brand__text { font-size: 19px; } }
 
 /* Projet complet : trois choix côte à côte (photo, pellicule, bibliothèque) */
 .choice--3 { grid-template-columns: repeat(3, 1fr); }
