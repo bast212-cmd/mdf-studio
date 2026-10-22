@@ -5,6 +5,7 @@ import { esc, $, $$, modal, toast, confirmDialog, bindDropzone, busy, num, furni
 import { capturePhotos } from './camera.js';
 import { src } from './data/media.js';
 import { exportLibraryDialog, pickAndImport } from './transfer.js';
+import { catalogueDialog } from './catalogue.js';
 
 const PLACEHOLDER = `<svg width="56" viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 22v-8a4 4 0 014-4h44a4 4 0 014 4v8"/><path d="M2 22a4 4 0 018 0v6h44v-6a4 4 0 018 0v10H2z"/><path d="M8 32v5M56 32v5"/></svg>`;
 
@@ -36,6 +37,7 @@ export async function renderLibrary(app, params = {}) {
       <div><span class="eyebrow">Bibliothèque</span><h1>Mes meubles</h1></div>
       <div class="btn-row">
         <button class="btn btn--light" data-cats>Gérer les pièces et types</button>
+        <button class="btn btn--light" data-catalog title="Ajouter des modèles du catalogue Mobilier de France">Catalogue MDF</button>
         <button class="btn btn--light" data-import title="Importer une bibliothèque reçue (fichier .zip)">⤓ Importer</button>
         <button class="btn btn--light" data-export title="Créer un fichier à partager">⤴ Partager</button>
         <button class="btn btn--ghost" data-photo>📷 Photographier un meuble</button>
@@ -71,7 +73,7 @@ export async function renderLibrary(app, params = {}) {
     $('#grid', app).innerHTML = `
       <button class="card card--add" data-new><div><span>+</span>Ajouter un meuble</div></button>
       ${list.map((f) => furnitureCard(f)).join('')}
-      ${!all.length ? `<div class="empty" style="grid-column:1/-1">Bibliothèque vide. Ajoutez vos meubles, ou <button class="linklike" data-import>importez un fichier de bibliothèque</button> reçu d'un autre appareil.</div>` : ''}`;
+      ${!all.length ? `<div class="empty" style="grid-column:1/-1">Bibliothèque vide. <button class="linklike" data-catalog>Ajoutez des modèles du catalogue Mobilier de France</button>, ajoutez vos propres meubles, ou <button class="linklike" data-import>importez un fichier de bibliothèque</button> reçu d'un autre appareil.</div>` : ''}`;
   };
 
   const refresh = async () => { all = await api.furniture(); drawTree(); drawGrid(); };
@@ -95,6 +97,7 @@ export async function renderLibrary(app, params = {}) {
     if (e.target.closest('[data-cats]')) { if (await manageCategories()) { drawTree(); drawGrid(); } return; }
     if (e.target.closest('[data-export]')) { exportLibraryDialog(state.category); return; }
     if (e.target.closest('[data-import]')) { if (await pickAndImport()) refresh(); return; }
+    if (e.target.closest('[data-catalog]')) { if (await catalogueDialog()) refresh(); return; }
     const card = e.target.closest('[data-fid]');
     if (card) {
       const f = all.find((x) => x.id === card.dataset.fid);

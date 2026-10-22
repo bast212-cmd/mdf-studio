@@ -428,3 +428,57 @@ img.img-missing { visibility: hidden; }
 .header__inner { box-sizing: border-box; min-height: 84px; padding-top: 0; padding-bottom: 0; }
 @media (max-width: 1180px) { .header__inner { min-height: 80px; } }
 @media (max-width: 720px) { .header__inner { min-height: 60px; padding-top: 0; padding-bottom: 0; } }
+
+/* ==========================================================
+   Logo : proportions toujours respectées, nom réparti sur plusieurs lignes
+   ========================================================== */
+.brand { flex: none; min-width: 0; }
+.brand__logo, .brand__mark, .brand__word { max-width: none; flex: none; object-fit: contain; }
+.brand__logo[hidden], .brand--split .brand__text, .brand--image .brand__text { display: none; }
+.brand__text { display: inline-flex; align-items: baseline; column-gap: .28em; font-family: var(--serif); font-size: 26px; line-height: 1; color: var(--blue); white-space: nowrap; letter-spacing: .01em; transition: font-size .35s cubic-bezier(.2, .8, .2, 1), letter-spacing .35s ease; }
+.brand__text > span { display: inline-flex; align-items: baseline; column-gap: .28em; }
+.bt-de { font-style: italic; font-size: .78em; color: #4b6c97; }
+.brand--text:hover .brand__text { letter-spacing: .04em; }
+.brand--text.brand--intro .bt-1 { animation: word-in .6s cubic-bezier(.2, .8, .2, 1) both; }
+.brand--text.brand--intro .bt-2 { animation: word-in .7s .2s cubic-bezier(.2, .8, .2, 1) both; }
+/* Tablette : « Mobilier » / « de France » sur deux lignes */
+@media (max-width: 1180px) {
+  .brand__text { flex-direction: column; align-items: flex-start; row-gap: 2px; font-size: 22px; line-height: .98; }
+  .bt-2 { padding-left: .9em; }
+  .brand--text { position: relative; }
+  .brand--text .brand__sub { margin-left: 4px; }
+}
+/* Téléphone : deux lignes plus compactes */
+@media (max-width: 720px) {
+  .brand__text { font-size: 19px; }
+}
+/* Très petit écran : trois lignes, « de » en petit entre les deux */
+@media (max-width: 380px) {
+  .brand__text { font-size: 17px; }
+  .bt-2 { flex-direction: column; align-items: flex-start; padding-left: 0; row-gap: 1px; }
+  .bt-de { font-size: .7em; padding-left: 1.1em; }
+}
+/* En-tête compact au défilement : le nom se resserre sans changer de forme */
+.header--compact .brand__text { font-size: 19px; }
+@media (max-width: 720px) { .header--compact .brand__text { font-size: 16px; } }
+/* Logo complet en image : hauteur fixe, largeur proportionnelle */
+.brand--image .brand__logo { height: 48px; width: auto; }
+@media (max-width: 720px) { .brand--image .brand__logo { height: 36px; } }
+
+/* Projet complet : trois choix côte à côte (photo, pellicule, bibliothèque) */
+.choice--3 { grid-template-columns: repeat(3, 1fr); }
+.choice--3 button { padding: 12px 6px; }
+.choice--3 button strong { font-size: 11px; }
+
+/* Catalogue Mobilier de France */
+.catalog { max-height: 52vh; overflow: auto; border: 1px solid var(--line); padding: 4px 16px; }
+.catalog section + section { border-top: 1px solid var(--line); }
+.catalog h3 { margin: 14px 0 6px; }
+.catalog ul { list-style: none; padding: 0; margin: 0 0 10px; }
+.catalog li { padding: 6px 0; }
+.catalog li .check { align-items: flex-start; font-size: 14px; }
+.catalog li .check input { margin-top: 2px; flex: none; }
+.catalog a { margin-left: 6px; }
+.tag-ok, .tag-warn { display: inline-block; font-size: 11px; padding: 1px 7px; margin-left: 6px; border-radius: 10px; }
+.tag-ok { background: #e6f2ea; color: var(--ok); }
+.tag-warn { background: #fff1d6; color: #8a5a00; }

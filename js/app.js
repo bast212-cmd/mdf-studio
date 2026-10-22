@@ -151,6 +151,12 @@ async function setupLogo() {
     imgs.forEach((im, i) => { im.src = srcs[i]; });
     brand.classList.add('brand--split', 'brand--intro');
     setTimeout(() => brand.classList.remove('brand--intro'), 1400);
+  } else {
+    // logo complet en une image, sinon le nom en texte (affiché par défaut)
+    const full = await loadImage('logo');
+    if (full) { const im = brand.querySelector('.brand__logo'); im.src = full; im.hidden = false; brand.classList.add('brand--image'); }
+    else brand.classList.add('brand--text', 'brand--intro');
+    setTimeout(() => brand.classList.remove('brand--intro'), 1400);
   }
   // En-tête compact quand on fait défiler la page (avec une marge pour éviter le clignotement)
   const header = document.querySelector('.header');

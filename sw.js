@@ -1,7 +1,7 @@
 // Service worker : rend l'application disponible hors ligne et installable.
 // À CHAQUE MISE EN LIGNE d'une nouvelle version : incrémenter VERSION (et APP_VERSION dans js/store.js).
 // L'application propose alors « Nouvelle version disponible › Mettre à jour ».
-const VERSION = '2.5.1';
+const VERSION = '2.6.0';
 const SHELL = `studio-shell-${VERSION}`;
 const RUNTIME = 'studio-runtime';
 
@@ -23,6 +23,8 @@ const FILES = [
   'js/plan.js',
   'js/project.js',
   'js/library.js',
+  'js/catalogue.js',
+  'js/data/catalogue-mdf.js',
   'js/quick.js',
   'js/settings.js',
   'js/transfer.js',
@@ -38,14 +40,14 @@ const FILES = [
 ];
 
 // Ressources externes mises en cache à la première utilisation (polices, logo)
-const RUNTIME_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'www.mobilierdefrance.com'];
+const RUNTIME_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL);
     await cache.addAll(FILES.map((f) => new Request(f, { cache: 'reload' })));
     // logos facultatifs déposés à la main dans img/
-    const optional = ['img/logo.png', ...['logo-carre', 'logo-nom'].flatMap((n) => ['svg', 'png', 'webp'].map((e) => `img/${n}.${e}`))];
+    const optional = [...['logo', 'logo-carre', 'logo-nom'].flatMap((n) => ['svg', 'png', 'webp'].map((e) => `img/${n}.${e}`))];
     await Promise.all(optional.map(async (f) => {
       try { const r = await fetch(f, { cache: 'reload' }); if (r.ok) await cache.put(f, r); } catch { /* absent */ }
     }));

@@ -9,6 +9,19 @@ import { openFurnitureForm, pickFurniture } from './library.js';
 
 const STEPS = ['La pièce', 'Le plan', 'Aménagement', 'Rendu IA'];
 
+/** Sélecteur de photos existantes (sur iPad : « Photothèque » ; sur ordinateur : fichiers) */
+function pickFromRoll() {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    input.onchange = () => resolve([...input.files].slice(0, 4));
+    input.addEventListener('cancel', () => resolve([]));
+    input.click();
+  });
+}
+
 /** Vérifie qu'une clé est renseignée et que l'appareil est en ligne avant un appel à l'IA */
 async function ensureAIReady() {
   store.status = await api.status();
@@ -402,8 +415,9 @@ function step3({ room, body, save, flush, go }) {
     el.innerHTML = `
       <div class="panel">
         <h3>Ajouter un meuble</h3>
-        <div class="choice">
+        <div class="choice choice--3">
           <button data-shoot><span class="ico">📷</span><strong>Photo en direct</strong></button>
+          <button data-roll><span class="ico">🖼️</span><strong>Pellicule</strong></button>
           <button data-lib><span class="ico">📚</span><strong>Bibliothèque</strong></button>
         </div>
         ${news.length ? `<ul class="item-list" style="margin-top:12px">${news.map((i) => `<li data-sel="${i.id}" class="${i.id === editor.selected ? 'sel' : ''}"><span class="dot" style="background:${i.keepOriginal ? '#0a3d7c' : i.color || '#0a3d7c'}"></span>${esc(i.name)}<span class="meta">${i.replacesId ? 'remplace' : 'libre'}</span></li>`).join('')}</ul>` : '<p class="muted small" style="margin-top:12px">Aucun nouveau meuble. Ajoutez-en un, puis placez-le sur le plan.</p>'}
@@ -413,7 +427,7 @@ function step3({ room, body, save, flush, go }) {
         <h3>${esc(selEx.name)}</h3>
         ${replacer ? `<p class="small">Remplacé par <strong>${esc(replacer.name)}</strong>.</p><button class="btn btn--light btn--sm" data-sel="${replacer.id}">Voir le nouveau meuble</button>`
           : `<p class="small">Meuble présent dans la pièce. Remplacez-le par un meuble :</p>
-        <div class="choice"><button data-repshoot><span class="ico">📷</span><strong>Photo en direct</strong></button><button data-replib><span class="ico">📚</span><strong>Bibliothèque</strong></button></div>`}
+        <div class="choice choice--3"><button data-repshoot><span class="ico">📷</span><strong>Photo en direct</strong></button><button data-reproll><span class="ico">🖼️</span><strong>Pellicule</strong></button><button data-replib><span class="ico">📚</span><strong>Bibliothèque</strong></button></div>`}
       </div>` : ''}
       <div class="panel panel--sand">
         <h3>Instructions pour l'IA</h3>
@@ -427,6 +441,13 @@ function step3({ room, body, save, flush, go }) {
       if (!shots?.length) return;
       addFurniture(await openFurnitureForm({ defaults: { category: room.category }, files: shots }));
     };
+    // Photo(s) déjà prises : pellicule de l'iPad / dossier de l'ordinateur
+    const fromRoll = async (replaceId) => {
+      const files = await pickFromRoll();
+      if (files.length) addFurniture(await openFurnitureForm({ defaults: { category: room.category }, files }), replaceId);
+    };
+    $('[data-roll]', el).onclick = () => fromRoll();
+    $('[data-reproll]', el)?.addEventListener('click', () => fromRoll(selEx.id));
     $('#extra', el).addEventListener('input', (e) => { room.extraInstructions = e.target.value; save(); });
     $('[data-replib]', el)?.addEventListener('click', async () => addFurniture(await pickFurniture({ category: room.category }), selEx.id));
     $('[data-repshoot]', el)?.addEventListener('click', async () => {

@@ -32,9 +32,14 @@ export default {
     const sent = (request.headers.get('x-access-code') || '').trim().toLowerCase();
     if (!sent) return error(401, "Code d'accès manquant : saisissez-le dans les Réglages, puis Enregistrer.", cors);
     if (!sameText(sent, expected)) return error(401, "Code d'accès du relais incorrect.", cors);
+    const url = new URL(request.url);
+
+    // Photos du catalogue Mobilier de France : récupérées par le relais car le site ne les
+    // autorise pas en accès direct depuis l'application (CORS). Seul ce site est accepté.
+    if (request.method === 'GET' && url.pathname === '/img') return catalogueImage(url.searchParams.get('u'), cors);
+
     if (!env.GEMINI_API_KEY) return error(500, 'Clé GEMINI_API_KEY absente du relais (Cloudflare › Variables and secrets).', cors);
 
-    const url = new URL(request.url);
     if (!['GET', 'POST'].includes(request.method) || !ALLOWED_PATHS.test(url.pathname)) {
       return error(404, `Appel non autorisé par le relais : ${request.method} ${url.pathname}`, cors);
     }
@@ -57,6 +62,24 @@ export default {
     return new Response(upstream.body, { status: upstream.status, headers });
   },
 };
+
+const IMAGE_HOSTS = ['www.mobilierdefrance.com', 'mobilierdefrance.com'];
+async function catalogueImage(u, cors) {
+  let target;
+  try { target = new URL(u || ''); } catch { return error(400, 'Adresse de photo invalide.', cors); }
+  if (target.protocol !== 'https:' || !IMAGE_HOSTS.includes(target.hostname) || !/\.(jpe?g|png|webp)$/i.test(target.pathname)) {
+    return error(403, 'Photo refusée : seules les photos du site Mobilier de France sont acceptées.', cors);
+  }
+  let r;
+  try { r = await fetch(target.toString(), { headers: { Accept: 'image/*' }, cf: { cacheTtl: 86400, cacheEverything: true } }); }
+  catch { return error(502, 'Le relais ne parvient pas à joindre mobilierdefrance.com.', cors); }
+  const type = r.headers.get('Content-Type') || '';
+  if (!r.ok || !type.startsWith('image/')) return error(404, `Photo introuvable (${r.status}).`, cors);
+  const headers = new Headers(cors);
+  headers.set('Content-Type', type);
+  headers.set('Cache-Control', 'public, max-age=86400');
+  return new Response(r.body, { status: 200, headers });
+}
 
 // Réponse d'erreur au même format que Google, pour que l'app l'affiche telle quelle
 function error(status, message, cors) {

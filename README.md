@@ -4,7 +4,7 @@ Application web installable (PWA) pour visualiser un nouveau meuble dans une pi�
 
 1. **La pièce** : photos (import ou prise directe) + longueur, largeur, hauteur sous plafond.
 2. **Le plan** : plan 2D à l'échelle ; meubles présents placés à la main ou détectés par l'IA ; point de vue de la photo.
-3. **Aménagement** : ajout d'un meuble (photo en direct ou bibliothèque), en remplacement ou en placement libre, avec rotation, couleur et matière.
+3. **Aménagement** : ajout d'un meuble (photo en direct, photo de la pellicule ou bibliothèque), en remplacement ou en placement libre, avec rotation, couleur et matière.
 4. **Rendu IA** : retouche de la photo par Gemini, comparaison avant/après, sauvegarde, partage, régénération.
 
 **Rendu rapide** (bouton sur l'accueil) : photo de la pièce › zone tracée au doigt sur la photo (remplacer ce qui s'y trouve, ou ajouter) › photo du meuble › photo de texture facultative › rendu. Sans plan ni bibliothèque. Les rendus rapides apparaissent dans « Mes projets » et dans les sauvegardes comme les autres.
@@ -85,7 +85,12 @@ La clé Gemini est gardée sur un petit relais Cloudflare (dossier `worker/`, gr
 
 Sans relais (par exemple en ouvrant `index.html` en local), laissez le code d'accès vide et collez une clé Google personnelle : l'appareil appelle alors Google directement.
 
-## 4. Partager une bibliothèque
+## 4. Bibliothèque : catalogue Mobilier de France et partage
+
+**Bibliothèque › Catalogue MDF** : une sélection de 63 modèles relevés sur mobilierdefrance.com (canapés, fauteuils, tables basses, meubles TV, bibliothèques, tables, chaises, buffets, vitrines, lits, chevets, commodes, consoles, bureau), avec leurs cotes et une photo. Cochez les modèles voulus puis « Importer la sélection ». Les photos sont récupérées par le relais Cloudflare (route `/img`, limitée aux photos du site Mobilier de France) : il faut internet et le code d'accès dans les Réglages. Un modèle déjà présent n'est pas dupliqué ; s'il est resté sans photo, relancer l'import la complète.
+
+La liste est dans `js/data/catalogue-mdf.js` : pour ajouter un modèle, copiez un bloc et adaptez-le (identifiant unique, cotes en cm, adresses des photos). Le relais doit être redéployé pour que la route `/img` existe (automatique si Cloudflare est relié au dépôt GitHub).
+
 
 **Bibliothèque › Partager** : toute la bibliothèque ou une seule pièce. Sur iPad, « Partager… » ouvre AirDrop, Mail, *Enregistrer dans Fichiers* (iCloud Drive, Google Drive). Sur ordinateur, le fichier est téléchargé.
 
@@ -110,6 +115,8 @@ js/app.js          routeur, démarrage, installation, mises à jour
 js/project.js      parcours en 4 étapes
 js/plan.js         éditeur de plan SVG
 js/library.js      bibliothèque, fiche meuble, catégories
+js/catalogue.js    import du catalogue Mobilier de France
+js/data/catalogue-mdf.js  sélection du catalogue (noms, cotes, photos)
 js/settings.js     écran Réglages
 js/transfer.js     fenêtres d'export / import
 js/camera.js       prise de photo
@@ -144,4 +151,4 @@ Pour l'activer, déposez dans `img/` les deux parties du logo officiel, au forma
 - `img/logo-carre.svg` (ou .png) : le logo carré seul ;
 - `img/logo-nom.svg` (ou .png) : le nom « Mobilier de France » seul, dans sa typographie.
 
-Sans ces fichiers, l'en-tête affiche `img/logo.png` s'il existe, sinon le logo du site Mobilier de France, sinon le texte. Assurez-vous d'avoir le droit d'utiliser la marque.
+Sans ces fichiers, l'en-tête affiche `img/logo.svg` / `img/logo.png` (logo complet, proportions toujours respectées) s'il existe, sinon le nom en texte, réparti volontairement sur une, deux ou trois lignes selon la largeur (« Mobilier » / « de France »). Assurez-vous d'avoir le droit d'utiliser la marque.
