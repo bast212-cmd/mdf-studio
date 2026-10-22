@@ -106,6 +106,7 @@ export function buildPrompt({ room, items, refIdx, ctxIdx, extraInstructions }) 
       s += `ADD the "${name}"${type} ${imgs}.`;
     }
     s += ` Real dimensions: ${dimsText({ ...f, ...it.dimsOverride }) || `${fmt(it.w)} x ${fmt(it.d)} cm footprint`}.`;
+    if (it.configText) s += ` ${it.configText}`;
     s += ` Position: ${rel.horiz}, about ${(rel.forward / 100).toFixed(1)} m in front of the camera`;
     if (rel.inView) s += ` (horizontal center around ${Math.round(rel.xPct)}% of the image width)`;
     s += `, ${rel.facing}. It stands on the floor.`;

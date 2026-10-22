@@ -1,7 +1,7 @@
 // Import d'une sélection du catalogue Mobilier de France dans la bibliothèque
 import { api, now } from './api.js';
 import { idb } from './data/db.js';
-import { storeImages } from './data/media.js';
+import { storeImages, putMedia } from './data/media.js';
 import { store } from './store.js';
 import { esc, modal, toast, busy, furnitureDims } from './ui.js';
 import { CATALOGUE_MDF, CATALOGUE_DATE } from './data/catalogue-mdf.js';
@@ -15,6 +15,24 @@ async function downloadPhoto(item, cfg) {
   }
   return [];
 }
+
+/** Éléments / dimensions du modèle, avec leur schéma vu de dessus téléchargé ; renvoie [sizes, nb de schémas manquants] */
+async function downloadSizes(item, cfg) {
+  let missing = 0;
+  const sizes = [];
+  for (const s of item.sizes || []) {
+    const { pictoUrl, ...rest } = s;
+    let picto = null;
+    if (pictoUrl) {
+      try { picto = await putMedia(await fetchCatalogueImage(pictoUrl, cfg)); } catch { missing++; }
+    }
+    sizes.push({ ...rest, origin: 'catalogue', ...(picto ? { picto } : { pictoUrl }) });
+  }
+  return [sizes, missing];
+}
+
+/** Le modèle local a-t-il tout ce que propose le catalogue (photo, éléments et schémas) ? */
+const complete = (it, f) => Boolean(f?.photos?.length) && (!it.sizes?.length || (f.sizes?.length && f.sizes.every((s) => s.picto || !s.pictoUrl)));
 
 /** Ajoute les pièces et types du catalogue absents des catégories */
 async function ensureCategories(items) {
@@ -35,7 +53,7 @@ export async function catalogueDialog() {
   const status = (it) => {
     const f = existing.get(it.id);
     if (!f) return 'new';
-    return f.photos?.length ? 'have' : 'nophoto';
+    return complete(it, f) ? 'have' : 'nophoto';
   };
   const groups = store.categories
     .map((c) => ({ c, items: CATALOGUE_MDF.filter((x) => x.category === c.id) }))
@@ -64,7 +82,8 @@ export async function catalogueDialog() {
               return `<li><label class="check">
                 <input type="checkbox" data-id="${esc(it.id)}" ${st === 'have' ? '' : 'checked'}>
                 <span><strong>${esc(it.name)}</strong> <span class="muted small">· ${esc(it.type)} · ${furnitureDims(it)}</span>
-                ${st === 'have' ? '<span class="tag-ok">déjà dans la bibliothèque</span>' : st === 'nophoto' ? '<span class="tag-warn">présent, sans photo</span>' : ''}
+                ${st === 'have' ? '<span class="tag-ok">déjà dans la bibliothèque</span>' : st === 'nophoto' ? '<span class="tag-warn">présent, à compléter</span>' : ''}
+                ${it.sizes?.length ? `<span class="tag-ok">${it.sizes.length} élément(s) / dimension(s)</span>` : ''}
                 <a href="${esc(it.sourceUrl)}" target="_blank" rel="noopener" class="small">voir</a></span>
               </label></li>`;
             }).join('')}</ul>
@@ -105,19 +124,33 @@ export async function catalogueDialog() {
       prog.classList.remove('hidden'); state.classList.remove('hidden');
       const cfg = providerConfig(await api.settings(), 'gemini');
       await ensureCategories(items);
-      let added = 0, photosOk = 0, noPhoto = 0, skipped = 0;
+      let added = 0, photosOk = 0, noPhoto = 0, skipped = 0, pictoMissing = 0;
       for (let i = 0; i < items.length; i++) {
         const it = items[i];
         state.textContent = `${i + 1} / ${items.length} · ${it.name}`;
         const old = existing.get(it.id);
-        if (old?.photos?.length) { skipped++; }
+        if (old && complete(it, old)) { skipped++; }
         else {
-          const photos = await downloadPhoto(it, cfg);
-          photos.length ? photosOk++ : noPhoto++;
-          const { photoUrls, ...data } = it;
+          // photo : seulement si elle manque
+          let photos = old?.photos || [];
+          if (!photos.length) { photos = await downloadPhoto(it, cfg); photos.length ? photosOk++ : noPhoto++; }
+          // éléments / dimensions : ceux du catalogue si le modèle local n'en a pas encore ;
+          // sinon on ne fait que compléter les schémas manquants (les modifications locales sont gardées)
+          let sizes = old?.sizes;
+          if (it.sizes?.length) {
+            if (!sizes?.length) { const [sz, miss] = await downloadSizes(it, cfg); sizes = sz; pictoMissing += miss; }
+            else {
+              for (const s of sizes) {
+                if (!s.picto && s.pictoUrl) {
+                  try { s.picto = await putMedia(await fetchCatalogueImage(s.pictoUrl, cfg)); delete s.pictoUrl; } catch { pictoMissing++; }
+                }
+              }
+            }
+          }
+          const { photoUrls, sizes: _s, ...data } = it;
           const rec = old
-            ? { ...old, photos, cover: 0, updatedAt: now() } // modèle déjà présent sans photo : on complète
-            : { ...data, reference: '', photos, cover: 0, createdAt: now(), updatedAt: now() };
+            ? { ...old, photos, cover: old.cover || 0, ...(sizes ? { sizes } : {}), updatedAt: now() }
+            : { ...data, reference: '', photos, cover: 0, ...(sizes ? { sizes } : {}), createdAt: now(), updatedAt: now() };
           await idb.put('furniture', rec);
           existing.set(it.id, rec);
           if (!old) added++;
@@ -128,9 +161,9 @@ export async function catalogueDialog() {
       api.notifyImport();
       busy(btn, false);
       const msg = `${added} modèle(s) ajouté(s), ${photosOk} photo(s) récupérée(s)${skipped ? `, ${skipped} déjà présent(s)` : ''}.`;
-      if (noPhoto) {
-        state.innerHTML = `${esc(msg)}<br><span class="err-text">${noPhoto} photo(s) non récupérée(s)</span> : vérifiez la connexion et le code d'accès du relais (Réglages), puis relancez l'import pour les compléter.`;
-        toast(`${msg} ${noPhoto} sans photo.`, 'err');
+      if (noPhoto || pictoMissing) {
+        state.innerHTML = `${esc(msg)}<br><span class="err-text">${noPhoto} photo(s) et ${pictoMissing} schéma(s) non récupéré(s)</span> : vérifiez la connexion et le code d'accès du relais (Réglages), puis relancez l'import pour les compléter.`;
+        toast(`${msg} Éléments manquants : relancez l'import.`, 'err');
       } else {
         toast(msg, 'ok');
         m.close();

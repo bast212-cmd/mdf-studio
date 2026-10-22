@@ -45,6 +45,9 @@ export async function mediaURL(id) {
   return u;
 }
 
+/** URL déjà prête (synchrone), ou '' si l'image n'a pas encore été chargée */
+export const cachedURL = (id) => urls.get(id) || '';
+
 /** Attributs HTML d'une image locale : <img ${src(id)} alt=""> */
 export function src(id) {
   if (!id) return '';
@@ -134,7 +137,7 @@ export function collectMediaIds(obj, acc = new Set()) {
     if (!n || typeof n !== 'object') return;
     if (Array.isArray(n)) return n.forEach(walk);
     for (const [k, v] of Object.entries(n)) {
-      if ((k === 'media' || k === 'textureImage') && typeof v === 'string') acc.add(v);
+      if ((k === 'media' || k === 'textureImage' || k === 'picto') && typeof v === 'string') acc.add(v);
       else if (v && typeof v === 'object') walk(v);
     }
   })(obj);

@@ -4,6 +4,8 @@ import { store, COLORS, TEXTURES, TEXTURE_EN } from './store.js';
 import { esc, $, $$, modal, toast, confirmDialog, bindDropzone, busy, num, furnitureDims } from './ui.js';
 import { capturePhotos } from './camera.js';
 import { src, getMediaBlob, shareOrDownload } from './data/media.js';
+import { isModular, defaultModules, defaultSize, applyFootprint } from './sizes.js';
+import { placementPanelHTML, bindPlacementPanel } from './sizes-ui.js';
 import { PlanEditor, defaultPlan, clampPlan, clampItem } from './plan.js';
 import { openFurnitureForm, pickFurniture } from './library.js';
 
@@ -337,6 +339,7 @@ function step3({ room, body, save, flush, go }) {
 
   const editor = new PlanEditor($('#planhost', body), {
     room, mode: 'new',
+    getFurniture: (id) => furnCache.get(id) || null,
     onSelect: () => side(),
     onChange: () => {
       save();
@@ -347,6 +350,8 @@ function step3({ room, body, save, flush, go }) {
   });
   $$('[data-rot]', body).forEach((b) => (b.onclick = () => { editor.rotateSelected(Number(b.dataset.rot)); side(); }));
   $('[data-back]', body).onclick = () => go(2);
+  // meubles déjà sur le plan : chargés pour afficher leurs schémas
+  Promise.all(room.plan.items.filter((i) => i.furnitureId).map((i) => getF(i.furnitureId))).then(() => editor.render());
 
   const generate = async (btn) => {
     const news = room.plan.items.filter((i) => i.kind === 'new');
@@ -388,6 +393,10 @@ function step3({ room, body, save, flush, go }) {
       w: f.length || 100, d: f.width || 60, h: f.height || 80,
       x: room.dims.length / 2, y: room.dims.width / 2, rot: 0, keepOriginal: true,
     };
+    // dimension présentée, ou composition présentée pour un meuble modulable
+    if (isModular(f)) it.modules = defaultModules(f);
+    else if (f.sizes?.length) it.sizeId = defaultSize(f)?.id;
+    applyFootprint(it, f);
     const rep = replacesId && room.plan.items.find((i) => i.id === replacesId);
     if (rep) { it.x = rep.x; it.y = rep.y; it.rot = rep.rot || 0; it.replacesId = rep.id; }
     else {
@@ -466,6 +475,10 @@ function step3({ room, body, save, flush, go }) {
         editor.render(); save(); side();
       }
     });
+    bindPlacementPanel($('#placement', panel), sel, f, {
+      onChange: () => { applyFootprint(sel, f); clampItem(sel, editor.L, editor.W); editor.render(); save(); side(); },
+      saveFurniture: async (nf) => { const r = await api.updateFurniture(nf.id, { sizes: nf.sizes }); furnCache.set(r.id, r); Object.assign(f, r); },
+    });
     panel.querySelectorAll('[data-color]').forEach((b) => (b.onclick = () => {
       sel.color = b.dataset.color; sel.colorName = b.title; sel.keepOriginal = false; save(); side();
     }));
@@ -488,6 +501,9 @@ function step3({ room, body, save, flush, go }) {
         sel.name = res.name;
         if (res.length) sel.w = res.length;
         if (res.width) sel.d = res.width;
+        if (isModular(res)) { sel.modules = (sel.modules || []).filter((m) => res.sizes?.some((x) => x.id === m.sizeId)); if (!sel.modules.length) sel.modules = defaultModules(res); delete sel.sizeId; }
+        else { delete sel.modules; if (res.sizes?.length && !res.sizes.some((x) => x.id === sel.sizeId)) sel.sizeId = defaultSize(res)?.id; }
+        applyFootprint(sel, res);
         clampItem(sel, editor.L, editor.W); editor.render(); save(); side();
       }
     });
@@ -496,6 +512,9 @@ function step3({ room, body, save, flush, go }) {
       if (!nf || nf === 'deleted') return;
       furnCache.set(nf.id, nf);
       Object.assign(sel, { furnitureId: nf.id, name: nf.name, w: nf.length || sel.w, d: nf.width || sel.d, h: nf.height || sel.h });
+      delete sel.modules; delete sel.sizeId;
+      if (isModular(nf)) sel.modules = defaultModules(nf); else if (nf.sizes?.length) sel.sizeId = defaultSize(nf)?.id;
+      applyFootprint(sel, nf);
       clampItem(sel, editor.L, editor.W); editor.render(); save(); side();
     };
     $('[data-del]', panel).onclick = () => { room.plan.items = room.plan.items.filter((i) => i.id !== sel.id); save(); editor.select(null); };
@@ -516,6 +535,7 @@ function step3({ room, body, save, flush, go }) {
             <option value="">Placement libre</option>
             ${existing.filter((e) => !taken.has(e.id)).map((e) => `<option value="${e.id}" ${sel.replacesId === e.id ? 'selected' : ''}>Remplace : ${esc(e.name)}</option>`).join('')}
           </select></div>
+        <div id="placement">${placementPanelHTML(sel, f)}</div>
         ${itemPropsCommon(sel)}
         <h3 style="margin-top:8px">Couleur et matière</h3>
         <label class="check"><input type="checkbox" data-p="keepOriginal" ${sel.keepOriginal ? 'checked' : ''}> Conserver le coloris d'origine</label>

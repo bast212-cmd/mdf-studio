@@ -1,6 +1,7 @@
 // Sélection du catalogue Mobilier de France (relevé sur mobilierdefrance.com le 22/10/2026).
 // Cotes en cm : length = largeur (L.), width = profondeur (P.), height = hauteur (H.).
-// photoUrls : essayées dans l'ordre (grande taille d'abord). Pour ajouter un modèle : copier un bloc et l'adapter (id unique).
+// photoUrls : essayées dans l'ordre (grande taille d'abord). sizes : éléments / dimensions avec leur schéma vu de dessus (pictoUrl),
+// « presented » = éléments de la composition présentée sur le site. Pour ajouter un modèle : copier un bloc et l'adapter (id unique).
 export const CATALOGUE_DATE = '2026-10-22';
 export const CATALOGUE_MDF = [
  {
@@ -18,6 +19,71 @@ export const CATALOGUE_MDF = [
    "https://www.mobilierdefrance.com/58843-large_default/canape-3-places-tino.jpg",
    "https://www.mobilierdefrance.com/58843/canape-3-places-tino.jpg",
    "https://www.mobilierdefrance.com/58843-home_default/canape-3-places-tino.jpg"
+  ],
+  "sizes": [
+   {
+    "id": "s1",
+    "label": "L. 272",
+    "length": 272,
+    "width": 135,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4238/dimensions/20260923_110036_157.png",
+    "height": 93
+   },
+   {
+    "id": "s2",
+    "label": "L. 312",
+    "length": 312,
+    "width": 135,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4238/others_dimensions/20260923_110214_311.png",
+    "height": 93
+   },
+   {
+    "id": "s3",
+    "label": "L. 312 x l. 177",
+    "length": 312,
+    "width": 177,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4238/others_dimensions/20260923_110603_647.jpg",
+    "height": 93
+   },
+   {
+    "id": "s4",
+    "label": "L. 312 x l. 177 (2)",
+    "length": 312,
+    "width": 177,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4238/others_dimensions/20260923_110606_116.jpg",
+    "height": 93
+   },
+   {
+    "id": "s5",
+    "label": "L. 272 x l. 177",
+    "length": 272,
+    "width": 177,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4238/others_dimensions/20260923_110552_836.jpg",
+    "height": 93
+   },
+   {
+    "id": "s6",
+    "label": "L. 272 x l. 177 (2)",
+    "length": 272,
+    "width": 177,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4238/others_dimensions/20260923_110556_693.jpg",
+    "height": 93
+   },
+   {
+    "id": "s7",
+    "label": "L. 120 x l. 108",
+    "length": 120,
+    "width": 108,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4238/others_dimensions/20260923_110810_489.jpg",
+    "height": 93
+   }
   ]
  },
  {
@@ -34,6 +100,116 @@ export const CATALOGUE_MDF = [
    "https://www.mobilierdefrance.com/58119-large_default/canape-3-places-velvette.jpg",
    "https://www.mobilierdefrance.com/58119/canape-3-places-velvette.jpg",
    "https://www.mobilierdefrance.com/58119-home_default/canape-3-places-velvette.jpg"
+  ],
+  "sizes": [
+   {
+    "id": "s1",
+    "label": "L. 123",
+    "length": 123,
+    "width": 103,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3968/dimensions/20260325_163337_480.jpg",
+    "height": 90
+   },
+   {
+    "id": "s2",
+    "label": "L. 123 (2)",
+    "length": 123,
+    "width": 103,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3968/dimensions/20260325_163340_654.jpg",
+    "height": 90
+   },
+   {
+    "id": "s3",
+    "label": "L. 100",
+    "length": 100,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3968/others_dimensions/20260325_163504_919.jpg",
+    "height": 90
+   },
+   {
+    "id": "s4",
+    "label": "L. 100 (2)",
+    "length": 100,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3968/others_dimensions/20260325_163515_768.jpg",
+    "height": 90
+   },
+   {
+    "id": "s5",
+    "label": "L. 103",
+    "length": 103,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3968/others_dimensions/20260325_163608_328.jpg",
+    "height": 90
+   },
+   {
+    "id": "s6",
+    "label": "L. 80",
+    "length": 80,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3968/others_dimensions/20260325_163612_729.jpg",
+    "height": 90
+   },
+   {
+    "id": "s7",
+    "label": "L. 111",
+    "length": 111,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3968/others_dimensions/20260325_163747_415.jpg",
+    "height": 90
+   },
+   {
+    "id": "s8",
+    "label": "L. 123 x l. 90",
+    "length": 123,
+    "width": 90,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3968/others_dimensions/20260325_163651_410.jpg",
+    "height": 90
+   },
+   {
+    "id": "s9",
+    "label": "L. 123 x l. 90 (2)",
+    "length": 123,
+    "width": 90,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3968/others_dimensions/20260325_163654_818.jpg",
+    "height": 90
+   },
+   {
+    "id": "s10",
+    "label": "L. 142",
+    "length": 142,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3968/others_dimensions/20260325_163711_009.png",
+    "height": 90
+   },
+   {
+    "id": "s11",
+    "label": "L. 120",
+    "length": 120,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3968/others_dimensions/20260325_163712_590.png",
+    "height": 90
+   },
+   {
+    "id": "s12",
+    "label": "L. 63 x l. 45",
+    "length": 63,
+    "width": 45,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3968/others_dimensions/20260325_164009_054.jpg",
+    "height": 90
+   }
   ]
  },
  {
@@ -82,6 +258,161 @@ export const CATALOGUE_MDF = [
    "https://www.mobilierdefrance.com/58797-large_default/canape-d-angle-zephyr.jpg",
    "https://www.mobilierdefrance.com/58797/canape-d-angle-zephyr.jpg",
    "https://www.mobilierdefrance.com/58797-home_default/canape-d-angle-zephyr.jpg"
+  ],
+  "sizes": [
+   {
+    "id": "s1",
+    "label": "L. 118",
+    "length": 118,
+    "width": 105,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/dimensions/20260930_150225_204.jpg",
+    "height": 99
+   },
+   {
+    "id": "s2",
+    "label": "L. 175",
+    "length": 175,
+    "width": 105,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/dimensions/20260930_150238_975.png",
+    "height": 99
+   },
+   {
+    "id": "s3",
+    "label": "L. 118 (2)",
+    "length": 118,
+    "width": 105,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/dimensions/20260930_150227_479.jpg",
+    "height": 99
+   },
+   {
+    "id": "s4",
+    "label": "L. 210",
+    "length": 210,
+    "width": 105,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/others_dimensions/20260930_150732_778.jpg",
+    "height": 99
+   },
+   {
+    "id": "s5",
+    "label": "L. 210 (2)",
+    "length": 210,
+    "width": 105,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/others_dimensions/20260930_150734_866.jpg",
+    "height": 99
+   },
+   {
+    "id": "s6",
+    "label": "L. 190",
+    "length": 190,
+    "width": 105,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/others_dimensions/20260930_150758_808.jpg",
+    "height": 99
+   },
+   {
+    "id": "s7",
+    "label": "L. 190 (2)",
+    "length": 190,
+    "width": 105,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/others_dimensions/20260930_150801_261.jpg",
+    "height": 99
+   },
+   {
+    "id": "s8",
+    "label": "L. 118 (3)",
+    "length": 118,
+    "width": 105,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/others_dimensions/20260930_150823_475.jpg",
+    "height": 99
+   },
+   {
+    "id": "s9",
+    "label": "L. 118 (4)",
+    "length": 118,
+    "width": 105,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/others_dimensions/20260930_150825_668.jpg",
+    "height": 99
+   },
+   {
+    "id": "s10",
+    "label": "L. 93",
+    "length": 93,
+    "width": 105,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/others_dimensions/20260930_150903_589.jpg",
+    "height": 99
+   },
+   {
+    "id": "s11",
+    "label": "L. 175 (2)",
+    "length": 175,
+    "width": 105,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/others_dimensions/20260930_150925_446.png",
+    "height": 99
+   },
+   {
+    "id": "s12",
+    "label": "L. 130",
+    "length": 130,
+    "width": 105,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/others_dimensions/20260930_150927_438.png",
+    "height": 99
+   },
+   {
+    "id": "s13",
+    "label": "L. 118 x P. 170",
+    "length": 118,
+    "width": 170,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/others_dimensions/20260930_150957_071.jpg",
+    "height": 99
+   },
+   {
+    "id": "s14",
+    "label": "L. 118 x P. 170 (2)",
+    "length": 118,
+    "width": 170,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/others_dimensions/20260930_150959_693.jpg",
+    "height": 99
+   },
+   {
+    "id": "s15",
+    "label": "L. 235",
+    "length": 235,
+    "width": 105,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/others_dimensions/20260930_151031_134.png",
+    "height": 99
+   },
+   {
+    "id": "s16",
+    "label": "L. 205",
+    "length": 205,
+    "width": 105,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/others_dimensions/20260930_151033_843.png",
+    "height": 99
+   },
+   {
+    "id": "s17",
+    "label": "L. 118 x P. 60",
+    "length": 118,
+    "width": 60,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4243/others_dimensions/20260930_151102_014.jpg",
+    "height": 99
+   }
   ]
  },
  {
@@ -116,6 +447,242 @@ export const CATALOGUE_MDF = [
    "https://www.mobilierdefrance.com/57482-large_default/canape-relaxation-electrique-3-places-oxford.jpg",
    "https://www.mobilierdefrance.com/57482/canape-relaxation-electrique-3-places-oxford.jpg",
    "https://www.mobilierdefrance.com/57482-home_default/canape-relaxation-electrique-3-places-oxford.jpg"
+  ],
+  "sizes": [
+   {
+    "id": "s1",
+    "label": "L. 228",
+    "length": 228,
+    "width": 99,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/dimensions/20260320_114941_804.jpg",
+    "height": 94
+   },
+   {
+    "id": "s2",
+    "label": "L. 196",
+    "length": 196,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_141313_442.jpg",
+    "height": 94
+   },
+   {
+    "id": "s3",
+    "label": "L. 196 (2)",
+    "length": 196,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_141317_382.jpg",
+    "height": 94
+   },
+   {
+    "id": "s4",
+    "label": "L. 180",
+    "length": 180,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_141324_757.jpg",
+    "height": 94
+   },
+   {
+    "id": "s5",
+    "label": "L. 180 (2)",
+    "length": 180,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_141329_555.jpg",
+    "height": 94
+   },
+   {
+    "id": "s6",
+    "label": "L. 114",
+    "length": 114,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_142654_431.jpg",
+    "height": 94
+   },
+   {
+    "id": "s7",
+    "label": "L. 114 (2)",
+    "length": 114,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_142700_152.jpg",
+    "height": 94
+   },
+   {
+    "id": "s8",
+    "label": "L. 106",
+    "length": 106,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_142732_627.jpg",
+    "height": 94
+   },
+   {
+    "id": "s9",
+    "label": "L. 106 (2)",
+    "length": 106,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_142749_980.jpg",
+    "height": 94
+   },
+   {
+    "id": "s10",
+    "label": "L. 91",
+    "length": 91,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_142804_112.jpg",
+    "height": 94
+   },
+   {
+    "id": "s11",
+    "label": "L. 91 (2)",
+    "length": 91,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_142808_596.jpg",
+    "height": 94
+   },
+   {
+    "id": "s12",
+    "label": "L. 82",
+    "length": 82,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260320_115354_558.jpg",
+    "height": 94
+   },
+   {
+    "id": "s13",
+    "label": "L. 74",
+    "length": 74,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260320_115357_070.jpg",
+    "height": 94
+   },
+   {
+    "id": "s14",
+    "label": "L. 111",
+    "length": 111,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_120651_322.jpg",
+    "height": 94
+   },
+   {
+    "id": "s15",
+    "label": "L. 229 x l. 109",
+    "length": 229,
+    "width": 109,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_115808_913.png",
+    "height": 94
+   },
+   {
+    "id": "s16",
+    "label": "L. 229 x l. 109 (2)",
+    "length": 229,
+    "width": 109,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_115804_059.png",
+    "height": 94
+   },
+   {
+    "id": "s17",
+    "label": "L. 121",
+    "length": 121,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_142909_634.jpg",
+    "height": 94
+   },
+   {
+    "id": "s18",
+    "label": "L. 121 (2)",
+    "length": 121,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260326_142905_624.jpg",
+    "height": 94
+   },
+   {
+    "id": "s19",
+    "label": "L. 228 (2)",
+    "length": 228,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260320_115452_522.jpg",
+    "height": 94
+   },
+   {
+    "id": "s20",
+    "label": "L. 228 (3)",
+    "length": 228,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260320_115505_339.png",
+    "height": 94
+   },
+   {
+    "id": "s21",
+    "label": "L. 212",
+    "length": 212,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260320_115513_432.jpg",
+    "height": 94
+   },
+   {
+    "id": "s22",
+    "label": "L. 212 (2)",
+    "length": 212,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260320_115518_717.png",
+    "height": 94
+   },
+   {
+    "id": "s23",
+    "label": "L. 182",
+    "length": 182,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260320_115526_335.jpg",
+    "height": 94
+   },
+   {
+    "id": "s24",
+    "label": "L. 182 (2)",
+    "length": 182,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260320_115532_597.png",
+    "height": 94
+   },
+   {
+    "id": "s25",
+    "label": "L. 122",
+    "length": 122,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260320_115555_358.png",
+    "height": 94
+   },
+   {
+    "id": "s26",
+    "label": "L. 64 x l. 99",
+    "length": 64,
+    "width": 99,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4078/others_dimensions/20260320_115604_988.jpg",
+    "height": 94
+   }
   ]
  },
  {
@@ -164,6 +731,116 @@ export const CATALOGUE_MDF = [
    "https://www.mobilierdefrance.com/56650-large_default/fauteuil-velvette.jpg",
    "https://www.mobilierdefrance.com/56650/fauteuil-velvette.jpg",
    "https://www.mobilierdefrance.com/56650-home_default/fauteuil-velvette.jpg"
+  ],
+  "sizes": [
+   {
+    "id": "s1",
+    "label": "L. 142",
+    "length": 142,
+    "width": 103,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3969/dimensions/20260402_151828_501.png",
+    "height": 90
+   },
+   {
+    "id": "s2",
+    "label": "L. 123",
+    "length": 123,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3969/others_dimensions/20260402_151935_062.jpg",
+    "height": 90
+   },
+   {
+    "id": "s3",
+    "label": "L. 123 (2)",
+    "length": 123,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3969/others_dimensions/20260402_151937_334.jpg",
+    "height": 90
+   },
+   {
+    "id": "s4",
+    "label": "L. 103",
+    "length": 103,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3969/others_dimensions/20260402_151924_028.jpg",
+    "height": 90
+   },
+   {
+    "id": "s5",
+    "label": "L. 103 (2)",
+    "length": 103,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3969/others_dimensions/20260402_151926_579.jpg",
+    "height": 90
+   },
+   {
+    "id": "s6",
+    "label": "L. 103 (3)",
+    "length": 103,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3969/others_dimensions/20260402_152031_150.jpg",
+    "height": 90
+   },
+   {
+    "id": "s7",
+    "label": "L. 80",
+    "length": 80,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3969/others_dimensions/20260402_152034_487.jpg",
+    "height": 90
+   },
+   {
+    "id": "s8",
+    "label": "L. 111",
+    "length": 111,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3969/others_dimensions/20260402_152051_930.jpg",
+    "height": 90
+   },
+   {
+    "id": "s9",
+    "label": "L. 123 x L. 90",
+    "length": 123,
+    "width": 90,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3969/others_dimensions/20260402_152100_974.jpg",
+    "height": 90
+   },
+   {
+    "id": "s10",
+    "label": "L. 123 x L. 90 (2)",
+    "length": 123,
+    "width": 90,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3969/others_dimensions/20260402_152103_208.jpg",
+    "height": 90
+   },
+   {
+    "id": "s11",
+    "label": "L. 120",
+    "length": 120,
+    "width": 103,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3969/others_dimensions/20260402_152125_206.png",
+    "height": 90
+   },
+   {
+    "id": "s12",
+    "label": "L. 63 x l. 45",
+    "length": 63,
+    "width": 45,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3969/others_dimensions/20260402_152134_655.jpg",
+    "height": 90
+   }
   ]
  },
  {
@@ -212,6 +889,18 @@ export const CATALOGUE_MDF = [
    "https://www.mobilierdefrance.com/57340-large_default/table-basse-soho.jpg",
    "https://www.mobilierdefrance.com/57340/table-basse-soho.jpg",
    "https://www.mobilierdefrance.com/57340-home_default/table-basse-soho.jpg"
+  ],
+  "sizes": [
+   {
+    "id": "s1",
+    "label": "Ø 130",
+    "length": 130,
+    "width": 130,
+    "round": true,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4156/dimensions/20260522_165313_680.png",
+    "height": 33
+   }
   ]
  },
  {
@@ -229,6 +918,48 @@ export const CATALOGUE_MDF = [
    "https://www.mobilierdefrance.com/57583-large_default/table-basse-orion.jpg",
    "https://www.mobilierdefrance.com/57583/table-basse-orion.jpg",
    "https://www.mobilierdefrance.com/57583-home_default/table-basse-orion.jpg"
+  ],
+  "sizes": [
+   {
+    "id": "s1",
+    "label": "Ø 99",
+    "length": 99,
+    "width": 99,
+    "round": true,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4157/dimensions/20260522_151513_411.png",
+    "height": 37
+   },
+   {
+    "id": "s2",
+    "label": "Ø 90",
+    "length": 90,
+    "width": 90,
+    "round": true,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4157/dimensions/20260522_151528_227.png",
+    "height": 37
+   },
+   {
+    "id": "s3",
+    "label": "Ø 119",
+    "length": 119,
+    "width": 119,
+    "round": true,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4157/others_dimensions/20260522_151643_988.png",
+    "height": 37
+   },
+   {
+    "id": "s4",
+    "label": "Ø 110",
+    "length": 110,
+    "width": 110,
+    "round": true,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4157/others_dimensions/20260522_151714_845.png",
+    "height": 37
+   }
   ]
  },
  {
@@ -391,6 +1122,26 @@ export const CATALOGUE_MDF = [
    "https://www.mobilierdefrance.com/58161-large_default/bibliotheque-neo-equinoxe.jpg",
    "https://www.mobilierdefrance.com/58161/bibliotheque-neo-equinoxe.jpg",
    "https://www.mobilierdefrance.com/58161-home_default/bibliotheque-neo-equinoxe.jpg"
+  ],
+  "sizes": [
+   {
+    "id": "s1",
+    "label": "L. 163",
+    "length": 163,
+    "width": 40,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4003/dimensions/20260527_102945_945.jpg",
+    "height": 200
+   },
+   {
+    "id": "s2",
+    "label": "L. 122",
+    "length": 122,
+    "width": 40,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4003/others_dimensions/20260527_103001_058.jpg",
+    "height": 200
+   }
   ]
  },
  {
@@ -683,6 +1434,35 @@ export const CATALOGUE_MDF = [
    "https://www.mobilierdefrance.com/57559-large_default/buffet-neo-equinoxe.jpg",
    "https://www.mobilierdefrance.com/57559/buffet-neo-equinoxe.jpg",
    "https://www.mobilierdefrance.com/57559-home_default/buffet-neo-equinoxe.jpg"
+  ],
+  "sizes": [
+   {
+    "id": "s1",
+    "label": "L. 220",
+    "length": 220,
+    "width": 50,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3993/dimensions/20260522_115248_750.jpg",
+    "height": 86
+   },
+   {
+    "id": "s2",
+    "label": "L. 240",
+    "length": 240,
+    "width": 50,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3993/others_dimensions/20260522_115311_983.jpg",
+    "height": 86
+   },
+   {
+    "id": "s3",
+    "label": "L. 180",
+    "length": 180,
+    "width": 50,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/3993/others_dimensions/20260522_115314_641.jpg",
+    "height": 86
+   }
   ]
  },
  {
@@ -764,6 +1544,71 @@ export const CATALOGUE_MDF = [
    "https://www.mobilierdefrance.com/56721-large_default/vitrine-1-porte-bois-et-1-porte-vitree-voge.jpg",
    "https://www.mobilierdefrance.com/56721/vitrine-1-porte-bois-et-1-porte-vitree-voge.jpg",
    "https://www.mobilierdefrance.com/56721-home_default/vitrine-1-porte-bois-et-1-porte-vitree-voge.jpg"
+  ],
+  "sizes": [
+   {
+    "id": "s1",
+    "label": "L. 140",
+    "length": 140,
+    "width": 45,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4129/dimensions/20260403_150932_451.jpg",
+    "height": 175
+   },
+   {
+    "id": "s2",
+    "label": "L. 120",
+    "length": 120,
+    "width": 45,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4129/others_dimensions/20260407_172434_430.png",
+    "height": 175
+   },
+   {
+    "id": "s3",
+    "label": "L. 82",
+    "length": 82,
+    "width": 45,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4129/others_dimensions/20260403_162301_821.jpg",
+    "height": 175
+   },
+   {
+    "id": "s4",
+    "label": "L. 82 (2)",
+    "length": 82,
+    "width": 45,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4129/others_dimensions/20260403_162301_809.jpg",
+    "height": 175
+   },
+   {
+    "id": "s5",
+    "label": "L. 240",
+    "length": 240,
+    "width": 45,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4129/others_dimensions/20260403_160152_695.png",
+    "height": 175
+   },
+   {
+    "id": "s6",
+    "label": "L. 220",
+    "length": 220,
+    "width": 45,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4129/others_dimensions/20260403_162405_486.png",
+    "height": 175
+   },
+   {
+    "id": "s7",
+    "label": "L. 180",
+    "length": 180,
+    "width": 45,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4129/others_dimensions/20260403_162801_169.png",
+    "height": 175
+   }
   ]
  },
  {
@@ -780,6 +1625,44 @@ export const CATALOGUE_MDF = [
    "https://www.mobilierdefrance.com/57570-large_default/vitrine-neo-equinoxe.jpg",
    "https://www.mobilierdefrance.com/57570/vitrine-neo-equinoxe.jpg",
    "https://www.mobilierdefrance.com/57570-home_default/vitrine-neo-equinoxe.jpg"
+  ],
+  "sizes": [
+   {
+    "id": "s1",
+    "label": "L. 115",
+    "length": 115,
+    "width": 45,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4202/dimensions/20260522_171454_628.jpg",
+    "height": 170
+   },
+   {
+    "id": "s2",
+    "label": "L. 120",
+    "length": 120,
+    "width": 45,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4202/others_dimensions/20260522_171559_036.jpg",
+    "height": 170
+   },
+   {
+    "id": "s3",
+    "label": "L. 59",
+    "length": 59,
+    "width": 45,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4202/others_dimensions/20260528_152717_579.jpg",
+    "height": 170
+   },
+   {
+    "id": "s4",
+    "label": "L. 59 (2)",
+    "length": 59,
+    "width": 45,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4202/others_dimensions/20260528_153228_594.png",
+    "height": 170
+   }
   ]
  },
  {
@@ -944,6 +1827,53 @@ export const CATALOGUE_MDF = [
    "https://www.mobilierdefrance.com/57291-large_default/console-eventail.jpg",
    "https://www.mobilierdefrance.com/57291/console-eventail.jpg",
    "https://www.mobilierdefrance.com/57291-home_default/console-eventail.jpg"
+  ],
+  "sizes": [
+   {
+    "id": "s1",
+    "label": "L. 165cm",
+    "length": 165,
+    "width": 40,
+    "presented": true,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4155/dimensions/20260513_150631_698.jpg",
+    "height": 80
+   },
+   {
+    "id": "s2",
+    "label": "L. 155cm",
+    "length": 155,
+    "width": 40,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4155/others_dimensions/20260513_150646_886.jpg",
+    "height": 80
+   },
+   {
+    "id": "s3",
+    "label": "L. 145cm",
+    "length": 145,
+    "width": 40,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4155/others_dimensions/20260513_150921_632.jpg",
+    "height": 80
+   },
+   {
+    "id": "s4",
+    "label": "L. 135cm",
+    "length": 135,
+    "width": 40,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4155/others_dimensions/20260513_150954_566.jpg",
+    "height": 80
+   },
+   {
+    "id": "s5",
+    "label": "L. 125cm",
+    "length": 125,
+    "width": 40,
+    "presented": false,
+    "pictoUrl": "https://www.mobilierdefrance.com/modules/bcpictos/images/4155/others_dimensions/20260513_151014_099.jpg",
+    "height": 80
+   }
   ]
  },
  {

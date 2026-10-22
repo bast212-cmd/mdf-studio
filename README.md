@@ -89,6 +89,12 @@ Sans relais (par exemple en ouvrant `index.html` en local), laissez le code d'ac
 
 **Bibliothèque › Catalogue MDF** : une sélection de 63 modèles relevés sur mobilierdefrance.com (canapés, fauteuils, tables basses, meubles TV, bibliothèques, tables, chaises, buffets, vitrines, lits, chevets, commodes, consoles, bureau), avec leurs cotes et une photo. Cochez les modèles voulus puis « Importer la sélection ». Les photos sont récupérées par le relais Cloudflare (route `/img`, limitée aux photos du site Mobilier de France) : il faut internet et le code d'accès dans les Réglages. Un modèle déjà présent n'est pas dupliqué ; s'il est resté sans photo, relancer l'import la complète.
 
+**Dimensions et modules** (même logique que le site Mobilier de France) : un meuble peut avoir plusieurs dimensions ou éléments, chacun avec son schéma vu de dessus. Les modèles du catalogue arrivent avec ceux du site : « Dimensions présentées » (cochés « présenté ») et « Autres dimensions et compositions possibles ». Dans la fiche d'un meuble, section « Dimensions et éléments » : modifier, supprimer, ou ajouter une dimension avec sa photo de schéma.
+
+- **Meuble simple** (fauteuil, table…) : à l'étape Aménagement, on choisit sa dimension parmi les schémas, ou on en crée une (« + Autre dimension »).
+- **Meuble modulable** (canapés, bibliothèques, meubles TV, buffets, vitrines) : le meuble est placé dans sa composition présentée, puis on ajoute, retire ou réordonne les éléments ; ⟲ place un élément « en retour » (angle, méridienne) à gauche (début de liste) ou à droite (fin de liste). Le plan dessine chaque élément avec son schéma.
+- **Rendu** : la dimension ou composition choisie est décrite à l'IA et un schéma vu de dessus lui est envoyé. Un meuble photographié en magasin dans une seule dimension ou un seul module est rendu dans la composition choisie, avec le même modèle et le même tissu.
+
 La liste est dans `js/data/catalogue-mdf.js` : pour ajouter un modèle, copiez un bloc et adaptez-le (identifiant unique, cotes en cm, adresses des photos). Le relais doit être redéployé pour que la route `/img` existe (automatique si Cloudflare est relié au dépôt GitHub).
 
 
@@ -116,6 +122,8 @@ js/project.js      parcours en 4 étapes
 js/plan.js         éditeur de plan SVG
 js/library.js      bibliothèque, fiche meuble, catégories
 js/catalogue.js    import du catalogue Mobilier de France
+js/sizes.js        dimensions multiples, compositions modulables (calcul de l'emprise, schéma pour l'IA)
+js/sizes-ui.js     choix des dimensions / éditeur de composition
 js/data/catalogue-mdf.js  sélection du catalogue (noms, cotes, photos)
 js/settings.js     écran Réglages
 js/transfer.js     fenêtres d'export / import

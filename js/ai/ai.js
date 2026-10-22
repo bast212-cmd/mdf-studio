@@ -2,6 +2,7 @@
 import { api, uid, now } from '../api.js';
 import { getMediaBlob, blobToBase64, base64ToBlob, putMedia } from '../data/media.js';
 import { buildPrompt, buildQuickPrompt, nearestRatio } from './prompt.js';
+import { isModular, sizesOf, sizeById, describeModules, drawLayoutPNG, dimsLabel } from '../sizes.js';
 import { PROVIDERS, getProvider, providerConfig } from './providers/index.js';
 
 async function active() {
@@ -95,7 +96,32 @@ export async function generateRender(room) {
       const im = await readImage(it.textureImage);
       if (im && images.length < 14) { images.push(im); textureIdx = images.length; }
     }
-    enriched.push({ ...it, furniture: f, imageIdx, textureIdx });
+    // Dimension ou composition choisie : décrite en texte + schéma vu de dessus envoyé à l'IA
+    let configText = '';
+    let dimsOverride = it.dimsOverride;
+    if (furniture && it.modules?.length && isModular(furniture)) {
+      const d = describeModules(furniture, it.modules);
+      configText = `CONFIGURATION: modular composition of ${d.count} element(s), overall footprint ${Math.round(d.w)} x ${Math.round(d.d)} cm; ${d.text}.`;
+      dimsOverride = { ...dimsOverride, length: d.w, width: d.d };
+    } else if (furniture && it.sizeId && sizesOf(furniture).length > 1) {
+      const sz = sizeById(furniture, it.sizeId);
+      if (sz) {
+        configText = `CONFIGURATION: size "${sz.label || dimsLabel(sz)}" of this model (${dimsLabel(sz)} cm${sz.round ? ', round' : ''}).`;
+        dimsOverride = { ...dimsOverride, length: sz.length, width: sz.width, ...(sz.height ? { height: sz.height } : {}) };
+      }
+    }
+    let layoutIdx = null;
+    if (configText && images.length < 14) {
+      try {
+        const png = await drawLayoutPNG(furniture, it, async (id) => { const b = await getMediaBlob(id); return b ? createImageBitmap(b) : null; });
+        if (png) { images.push({ mimeType: 'image/png', data: await blobToBase64(png) }); layoutIdx = images.length; }
+      } catch (e) { console.warn('Schéma non généré', e); }
+    }
+    if (configText) {
+      if (layoutIdx) configText += ` IMAGE ${layoutIdx} is a top-view diagram of this configuration (back against the wall at the top, seat / front side at the bottom, dimensions in cm).`;
+      configText += ' The reference photos may show another size or composition of the same model (for example a single element photographed in the store): keep exactly the same design, materials, color, cushions, arms and legs, but build the configuration described here.';
+    }
+    enriched.push({ ...it, furniture: f, imageIdx, textureIdx, configText, dimsOverride });
   }
 
   const prompt = buildPrompt({ room, items: enriched, refIdx, ctxIdx, extraInstructions: room.extraInstructions });

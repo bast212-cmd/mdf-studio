@@ -1,7 +1,7 @@
 // Service worker : rend l'application disponible hors ligne et installable.
 // À CHAQUE MISE EN LIGNE d'une nouvelle version : incrémenter VERSION (et APP_VERSION dans js/store.js).
 // L'application propose alors « Nouvelle version disponible › Mettre à jour ».
-const VERSION = '2.6.2';
+const VERSION = '2.7.0';
 const SHELL = `studio-shell-${VERSION}`;
 const RUNTIME = 'studio-runtime';
 
@@ -24,6 +24,8 @@ const FILES = [
   'js/project.js',
   'js/library.js',
   'js/catalogue.js',
+  'js/sizes.js',
+  'js/sizes-ui.js',
   'js/data/catalogue-mdf.js',
   'js/quick.js',
   'js/settings.js',
