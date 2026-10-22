@@ -40,13 +40,6 @@ export async function renderSettings(view) {
       <section class="panel">
         <h3>Installation et stockage</h3>
         <div id="install"></div>
-        <div class="field"><label>Orientation de l'écran</label>
-          <div class="seg" id="orient">
-            <button data-orient="any" class="${settings.orientation !== 'landscape' ? 'sel' : ''}">Libre</button>
-            <button data-orient="landscape" class="${settings.orientation === 'landscape' ? 'sel' : ''}">Paysage uniquement</button>
-          </div>
-          <span class="hint">« Paysage uniquement » : tenue à la verticale, la tablette affiche « Tournez l'écran » au lieu de réorganiser la page. Sans effet sur ordinateur.</span>
-        </div>
         <dl class="kv" id="storage"><dt>Stockage utilisé</dt><dd>…</dd></dl>
         <dl class="kv">
           <dt>Projets</dt><dd>${rooms.length} (${renders} rendu${renders > 1 ? 's' : ''})</dd>
@@ -172,38 +165,12 @@ export async function renderSettings(view) {
   };
   drawInstall();
 
-  // ---------- Orientation ----------
-  $$('[data-orient]', view).forEach((b) => (b.onclick = async () => {
-    settings.orientation = b.dataset.orient;
-    await api.saveSettings(settings);
-    applyOrientation(settings.orientation);
-    $$('[data-orient]', view).forEach((x) => x.classList.toggle('sel', x === b));
-  }));
-
   // ---------- Sauvegardes ----------
   $('[data-backup]', view).onclick = (e) => exportBackupDialog(e.currentTarget);
   $('[data-restore]', view).onclick = async () => { if (await pickAndImport()) renderSettings(view); };
   $('[data-legacy]', view)?.addEventListener('click', async () => { if (await pickLegacyFolder()) renderSettings(view); });
 }
 
-/**
- * Orientation imposée sur tablette. Safari et Chrome sur iPad ne permettent pas de bloquer la rotation :
- * en mode « landscape », un écran « Tournez l'écran » recouvre la page tenue à la verticale (voir .rotate-hint).
- */
-export function applyOrientation(pref) {
-  const on = pref === 'landscape';
-  document.documentElement.classList.toggle('force-landscape', on);
-  // écran tactile (tablette), même avec un clavier ou un trackpad branché
-  document.documentElement.classList.toggle('is-touch', navigator.maxTouchPoints > 1);
-  if (on && !document.getElementById('rotate-hint')) {
-    document.body.insertAdjacentHTML('beforeend', `<div id="rotate-hint" class="rotate-hint" role="alert">
-      <div><span class="rotate-hint__ico">⤾</span><strong>Tournez l'écran à l'horizontale</strong>
-      <span class="small">L'application est réglée en mode paysage (Réglages › Orientation).</span></div></div>`);
-  }
-  // Android, application installée : vrai blocage quand le navigateur le permet
-  if (on) screen.orientation?.lock?.('landscape').catch(() => {});
-  else screen.orientation?.unlock?.();
-}
 
 /** Met à jour la ligne d'état en pied de page */
 export async function refreshStatusLine() {
