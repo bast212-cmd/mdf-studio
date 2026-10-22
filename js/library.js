@@ -5,6 +5,9 @@ import { esc, $, $$, modal, toast, confirmDialog, bindDropzone, busy, num, furni
 import { capturePhotos } from './camera.js';
 import { src } from './data/media.js';
 import { exportLibraryDialog, pickAndImport } from './transfer.js';
+import { catalogueDialog } from './catalogue.js';
+import { sizesEditorHTML, bindSizesEditor, sizeThumb } from './sizes-ui.js';
+import { isModularType, sizesOf } from './sizes.js';
 
 const PLACEHOLDER = `<svg width="56" viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 22v-8a4 4 0 014-4h44a4 4 0 014 4v8"/><path d="M2 22a4 4 0 018 0v6h44v-6a4 4 0 018 0v10H2z"/><path d="M8 32v5M56 32v5"/></svg>`;
 
@@ -17,7 +20,7 @@ export function furnitureCard(f, { selectable = false } = {}) {
       <div class="card__body">
         <div class="card__title">${esc(f.name)}</div>
         <div class="card__meta">${esc(store.catName(f.category) || 'Sans pièce')}${f.reference ? ' · Réf. ' + esc(f.reference) : ''}</div>
-        <div class="card__meta">${furnitureDims(f)}</div>
+        <div class="card__meta">${furnitureDims(f)}${f.sizes?.length > 1 ? ` · ${f.sizes.length} ${isModularType(f.type) ? 'éléments' : 'dimensions'}` : ''}</div>
       </div>
       ${selectable ? '' : ''}
     </article>`;
@@ -36,6 +39,7 @@ export async function renderLibrary(app, params = {}) {
       <div><span class="eyebrow">Bibliothèque</span><h1>Mes meubles</h1></div>
       <div class="btn-row">
         <button class="btn btn--light" data-cats>Gérer les pièces et types</button>
+        <button class="btn btn--light" data-catalog title="Ajouter des modèles du catalogue Mobilier de France">Catalogue MDF</button>
         <button class="btn btn--light" data-import title="Importer une bibliothèque reçue (fichier .zip)">⤓ Importer</button>
         <button class="btn btn--light" data-export title="Créer un fichier à partager">⤴ Partager</button>
         <button class="btn btn--ghost" data-photo>📷 Photographier un meuble</button>
@@ -71,7 +75,7 @@ export async function renderLibrary(app, params = {}) {
     $('#grid', app).innerHTML = `
       <button class="card card--add" data-new><div><span>+</span>Ajouter un meuble</div></button>
       ${list.map((f) => furnitureCard(f)).join('')}
-      ${!all.length ? `<div class="empty" style="grid-column:1/-1">Bibliothèque vide. Ajoutez vos meubles, ou <button class="linklike" data-import>importez un fichier de bibliothèque</button> reçu d'un autre appareil.</div>` : ''}`;
+      ${!all.length ? `<div class="empty" style="grid-column:1/-1">Bibliothèque vide. <button class="linklike" data-catalog>Ajoutez des modèles du catalogue Mobilier de France</button>, ajoutez vos propres meubles, ou <button class="linklike" data-import>importez un fichier de bibliothèque</button> reçu d'un autre appareil.</div>` : ''}`;
   };
 
   const refresh = async () => { all = await api.furniture(); drawTree(); drawGrid(); };
@@ -95,6 +99,7 @@ export async function renderLibrary(app, params = {}) {
     if (e.target.closest('[data-cats]')) { if (await manageCategories()) { drawTree(); drawGrid(); } return; }
     if (e.target.closest('[data-export]')) { exportLibraryDialog(state.category); return; }
     if (e.target.closest('[data-import]')) { if (await pickAndImport()) refresh(); return; }
+    if (e.target.closest('[data-catalog]')) { if (await catalogueDialog()) refresh(); return; }
     const card = e.target.closest('[data-fid]');
     if (card) {
       const f = all.find((x) => x.id === card.dataset.fid);
@@ -153,6 +158,7 @@ export async function openFurnitureForm({ furniture, defaults = {}, files = [] }
               <div class="field" data-seat><label>Hauteur d'assise</label><div class="unit" data-unit="cm"><input name="seatHeight" type="number" min="1" value="${f.seatHeight ?? ''}"></div></div>
               <div class="field" data-top><label>Hauteur de plateau</label><div class="unit" data-unit="cm"><input name="topHeight" type="number" min="1" value="${f.topHeight ?? ''}"></div></div>
             </div>
+            ${sizesEditorHTML()}
             <div class="field"><label>Autres cotes</label><input name="extra" value="${esc(f.extra || '')}" placeholder="Ex. profondeur d'assise 58 cm, accoudoirs 20 cm"></div>
             <div class="field"><label>Description / notes</label><textarea name="notes" placeholder="Matière, coloris, pieds, particularités…">${esc(f.notes || '')}</textarea></div>
           </form>
@@ -189,6 +195,8 @@ export async function openFurnitureForm({ furniture, defaults = {}, files = [] }
       } catch (e) { toast(e.message, 'err'); }
     };
     drawThumbs(); toggleExtra();
+    const sizesUI = bindSizesEditor(el, f, () => isModularType(form.type.value));
+    form.type.addEventListener('change', () => sizesUI.redraw());
     if (files.length) addFiles(files);
 
     form.category.addEventListener('change', () => { f.category = form.category.value; f.type = ''; form.type.innerHTML = typeOptions(f.category); toggleExtra(); });
@@ -210,7 +218,7 @@ export async function openFurnitureForm({ furniture, defaults = {}, files = [] }
         name: data.name.trim(), reference: data.reference.trim(), category: data.category, type: data.type,
         length: num(data.length), width: num(data.width), height: num(data.height),
         seatHeight: num(data.seatHeight), topHeight: num(data.topHeight),
-        extra: data.extra.trim(), notes: data.notes.trim(), photos: f.photos, cover: f.cover || 0,
+        extra: data.extra.trim(), notes: data.notes.trim(), photos: f.photos, cover: f.cover || 0, sizes: f.sizes || [],
       };
       if (!body.photos.length && !(await confirmDialog("Ce meuble n'a pas de photo : l'IA ne pourra s'appuyer que sur sa description. Continuer ?", 'Continuer', false))) return;
       busy(e.target, true, 'Enregistrement…');

@@ -3,8 +3,8 @@
 Application web installable (PWA) pour visualiser un nouveau meuble dans une pièce réelle :
 
 1. **La pièce** : photos (import ou prise directe) + longueur, largeur, hauteur sous plafond.
-2. **Le plan** : plan 2D à l'échelle ; meubles présents placés à la main ou détectés par l'IA ; point de vue de la photo.
-3. **Aménagement** : ajout d'un meuble (photo en direct ou bibliothèque), en remplacement ou en placement libre, avec rotation, couleur et matière.
+2. **Le plan** : plan 2D à l'échelle ; meubles présents placés à la main ou détectés par l'IA (Gemini les dessine en schémas vus de dessus, à la manière des pictogrammes du catalogue : canapé droit, d'angle, méridienne, fauteuil, tables, lit, rangements… ; les tapis sont ignorés) ; point de vue de la photo.
+3. **Aménagement** : ajout d'un meuble (photo en direct, photo de la pellicule ou bibliothèque), en remplacement ou en placement libre, avec rotation, couleur et matière.
 4. **Rendu IA** : retouche de la photo par Gemini, comparaison avant/après, sauvegarde, partage, régénération.
 
 **Rendu rapide** (bouton sur l'accueil) : photo de la pièce › zone tracée au doigt sur la photo (remplacer ce qui s'y trouve, ou ajouter) › photo du meuble › photo de texture facultative › rendu. Sans plan ni bibliothèque. Les rendus rapides apparaissent dans « Mes projets » et dans les sauvegardes comme les autres.
@@ -85,7 +85,18 @@ La clé Gemini est gardée sur un petit relais Cloudflare (dossier `worker/`, gr
 
 Sans relais (par exemple en ouvrant `index.html` en local), laissez le code d'accès vide et collez une clé Google personnelle : l'appareil appelle alors Google directement.
 
-## 4. Partager une bibliothèque
+## 4. Bibliothèque : catalogue Mobilier de France et partage
+
+**Bibliothèque › Catalogue MDF** : une sélection de 63 modèles relevés sur mobilierdefrance.com (canapés, fauteuils, tables basses, meubles TV, bibliothèques, tables, chaises, buffets, vitrines, lits, chevets, commodes, consoles, bureau), avec leurs cotes et une photo. Cochez les modèles voulus puis « Importer la sélection ». Les photos sont récupérées par le relais Cloudflare (route `/img`, limitée aux photos du site Mobilier de France) : il faut internet et le code d'accès dans les Réglages. Un modèle déjà présent n'est pas dupliqué ; s'il est resté sans photo, relancer l'import la complète.
+
+**Dimensions et modules** (même logique que le site Mobilier de France) : un meuble peut avoir plusieurs dimensions ou éléments, chacun avec son schéma vu de dessus. Les modèles du catalogue arrivent avec ceux du site : « Dimensions présentées » (cochés « présenté ») et « Autres dimensions et compositions possibles ». Dans la fiche d'un meuble, section « Dimensions et éléments » : modifier, supprimer, ou ajouter une dimension avec sa photo de schéma.
+
+- **Meuble simple** (fauteuil, table…) : à l'étape Aménagement, on choisit sa dimension parmi les schémas, ou on en crée une (« + Autre dimension »).
+- **Meuble modulable** (canapés, bibliothèques, meubles TV, buffets, vitrines) : le meuble est placé dans sa composition présentée, puis on ajoute, retire ou réordonne les éléments ; ⟲ place un élément « en retour » (angle, méridienne) à gauche (début de liste) ou à droite (fin de liste). Le plan dessine chaque élément avec son schéma.
+- **Rendu** : la dimension ou composition choisie est décrite à l'IA et un schéma vu de dessus lui est envoyé. Un meuble photographié en magasin dans une seule dimension ou un seul module est rendu dans la composition choisie, avec le même modèle et le même tissu.
+
+La liste est dans `js/data/catalogue-mdf.js` : pour ajouter un modèle, copiez un bloc et adaptez-le (identifiant unique, cotes en cm, adresses des photos). Le relais doit être redéployé pour que la route `/img` existe (automatique si Cloudflare est relié au dépôt GitHub).
+
 
 **Bibliothèque › Partager** : toute la bibliothèque ou une seule pièce. Sur iPad, « Partager… » ouvre AirDrop, Mail, *Enregistrer dans Fichiers* (iCloud Drive, Google Drive). Sur ordinateur, le fichier est téléchargé.
 
@@ -110,6 +121,11 @@ js/app.js          routeur, démarrage, installation, mises à jour
 js/project.js      parcours en 4 étapes
 js/plan.js         éditeur de plan SVG
 js/library.js      bibliothèque, fiche meuble, catégories
+js/catalogue.js    import du catalogue Mobilier de France
+js/sizes.js        dimensions multiples, compositions modulables (calcul de l'emprise, schéma pour l'IA)
+js/sizes-ui.js     choix des dimensions / éditeur de composition
+js/symbols.js      schémas vus de dessus des meubles (formes du plan)
+js/data/catalogue-mdf.js  sélection du catalogue (noms, cotes, photos)
 js/settings.js     écran Réglages
 js/transfer.js     fenêtres d'export / import
 js/camera.js       prise de photo
@@ -138,10 +154,10 @@ Le code est organisé pour l'ajouter sans tout refaire :
 Un module `js/sync/drive.js` pourra : se connecter (Google Identity Services, client OAuth à créer dans Google Cloud), écouter `onChange`, envoyer le paquet de la bibliothèque dans un dossier Drive, et à l'ouverture récupérer celui des autres appareils pour le fusionner avec `planImport` / `applyImport`, en appliquant les `tombstones`.
 
 ### Logo
-Le logo s'anime selon la taille de l'écran : carré et nom côte à côte sur ordinateur, « Studio IA » sous le nom sur tablette, version resserrée sur téléphone, carré seul sur très petit écran. Quand on fait défiler la page, le nom se replie derrière le carré et réapparaît au survol (ordinateur).
+L'en-tête affiche le logo officiel Mobilier de France : le carré et le nom dans sa typographie. Il n'est jamais déformé : quand la place manque, le nom passe à la ligne (« Mobilier » / « de France » sur tablette et téléphone, un mot par ligne sur très petit écran) et le carré garde sa forme.
 
-Pour l'activer, déposez dans `img/` les deux parties du logo officiel, au format SVG (idéal), PNG ou WebP, sur fond transparent et rognées au plus juste :
-- `img/logo-carre.svg` (ou .png) : le logo carré seul ;
-- `img/logo-nom.svg` (ou .png) : le nom « Mobilier de France » seul, dans sa typographie.
+Pour cela, le logo est découpé en quatre fichiers à déposer dans `img/` (SVG idéalement, sinon PNG ou WebP, fond transparent) :
+- `logo-carre` : le carré seul ;
+- `logo-mobilier`, `logo-de`, `logo-france` : chaque mot du nom, **tous rognés à la même hauteur** (même bande verticale) pour garder la même échelle.
 
-Sans ces fichiers, l'en-tête affiche `img/logo.png` s'il existe, sinon le logo du site Mobilier de France, sinon le texte. Assurez-vous d'avoir le droit d'utiliser la marque.
+Sans ces fichiers, l'en-tête prend le logo complet (`img/logo.*`, sinon celui du site mobilierdefrance.com) et n'en affiche que le carré, à la même échelle ; le nom est écrit à côté en Montserrat (police proche de celle du logo), plus petit, pour que le menu reste toujours accessible. Sur très petit écran, il passe sur deux lignes. Assurez-vous d'avoir le droit d'utiliser la marque.

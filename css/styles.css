@@ -347,70 +347,6 @@ img.img-missing { visibility: hidden; }
 .zone-editor.tool-keep { cursor: cell; }
 .seg.tools button.sel.keep { background: #0050ff; }
 
-/* ==========================================================
-   Logo dynamique : carré + nom, qui s'adaptent à l'écran et au défilement
-   (actif quand img/logo-carre.* et img/logo-nom.* sont présents)
-   ========================================================== */
-.header, .header__inner { transition: padding .35s ease, box-shadow .35s ease; }
-.brand__lockup { display: none; align-items: center; gap: 14px; }
-.brand--split .brand__lockup { display: inline-flex; }
-.brand--split .brand__logo, .brand--split .brand__text { display: none; }
-.brand__mark { height: 52px; width: auto; flex: none; transition: height .35s cubic-bezier(.2, .8, .2, 1), transform .5s cubic-bezier(.2, .8, .2, 1); }
-.brand__wordwrap { display: block; overflow: hidden; max-width: 320px; transition: max-width .45s cubic-bezier(.2, .8, .2, 1), opacity .3s ease; }
-.brand__word { height: 24px; width: auto; max-width: none; transition: height .35s cubic-bezier(.2, .8, .2, 1), transform .45s cubic-bezier(.2, .8, .2, 1); }
-.brand__sub { transition: opacity .3s ease, max-width .4s ease, padding .4s ease, margin .4s ease; white-space: nowrap; overflow: hidden; max-width: 140px; }
-
-/* Survol : le carré se redresse légèrement, le nom glisse vers lui */
-.brand--split:hover .brand__mark { transform: rotate(-4deg) scale(1.05); }
-.brand--split:hover .brand__word { transform: translateX(-3px); }
-
-/* Apparition au chargement : le carré arrive, puis le nom se déroule depuis le carré */
-.brand--split.brand--intro .brand__mark { animation: mark-in .6s cubic-bezier(.2, .8, .2, 1) both; }
-.brand--split.brand--intro .brand__word { animation: word-in .7s .25s cubic-bezier(.2, .8, .2, 1) both; }
-@keyframes mark-in { from { opacity: 0; transform: scale(.7) rotate(-8deg); } to { opacity: 1; transform: none; } }
-@keyframes word-in { from { opacity: 0; clip-path: inset(0 100% 0 0); transform: translateX(-12px); } to { opacity: 1; clip-path: inset(0 0 0 0); transform: none; } }
-
-/* En-tête compact après défilement : le carré reste seul, le nom se replie derrière lui */
-.header--compact { box-shadow: 0 4px 18px rgba(10, 30, 60, .07); }
-.header--compact .brand__logo { height: 38px; }
-.header--compact .brand--split .brand__mark { height: 38px; }
-.header--compact .brand--split .brand__wordwrap { max-width: 0; opacity: 0; }
-.header--compact .brand--split .brand__word { transform: translateX(-40%); }
-.header--compact .brand__sub { opacity: 0; max-width: 0; padding-left: 0; border-left-color: transparent; margin-left: -14px; }
-/* …et réapparaît au survol de l'en-tête compact (ordinateur) */
-@media (hover: hover) {
-  .header--compact .brand--split:hover .brand__wordwrap { max-width: 320px; opacity: 1; }
-  .header--compact .brand--split:hover .brand__word { transform: none; }
-}
-
-/* Tablette (iPad portrait, petits portables) : nom plus fin, « Studio IA » sous le nom */
-@media (max-width: 1180px) {
-  .brand__mark { height: 46px; }
-  .brand__word { height: 20px; }
-  .brand--split { position: relative; }
-  .brand--split .brand__sub { position: absolute; left: 60px; top: 100%; margin-top: 2px; border: 0; padding: 0; font-size: 9px; letter-spacing: .3em; }
-  .nav { gap: 22px; }
-}
-/* Téléphone : carré + nom compact ; « Studio IA » masqué */
-@media (max-width: 720px) {
-  .brand__mark { height: 38px; }
-  .brand__word { height: 16px; }
-  .brand__lockup { gap: 10px; }
-  .brand--split .brand__sub { display: none; }
-}
-/* Très petit écran : le carré seul */
-@media (max-width: 380px) {
-  .brand--split .brand__wordwrap { max-width: 0; opacity: 0; }
-}
-/* Mode paysage très bas (téléphone couché) : toujours compact */
-@media (max-height: 480px) and (orientation: landscape) {
-  .brand__mark { height: 34px; }
-  .brand--split .brand__wordwrap { max-width: 0; opacity: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .brand__mark, .brand__word, .brand__wordwrap, .brand__sub, .header__inner { transition: none !important; animation: none !important; }
-}
-
 /* Menu : jamais sur deux lignes ; menu « burger » dès la tablette portrait */
 .nav a { white-space: nowrap; }
 @media (max-width: 1180px) { .nav a { font-size: 12px; letter-spacing: .06em; } }
@@ -428,3 +364,125 @@ img.img-missing { visibility: hidden; }
 .header__inner { box-sizing: border-box; min-height: 84px; padding-top: 0; padding-bottom: 0; }
 @media (max-width: 1180px) { .header__inner { min-height: 80px; } }
 @media (max-width: 720px) { .header__inner { min-height: 60px; padding-top: 0; padding-bottom: 0; } }
+
+/* ==========================================================
+   Logo Mobilier de France : carré + nom, sans jamais déformer.
+   Quand la place manque, le nom passe à la ligne au lieu d'être écrasé.
+   ========================================================== */
+.brand { flex: none; min-width: 0; }
+.brand img { max-width: none; flex: none; }
+.brand__lockup { display: none; align-items: center; gap: 12px; }
+.brand--words .brand__lockup { display: inline-flex; }
+.brand__text[hidden] { display: none !important; }
+.brand--words .brand__text, .brand--words .brand__sq { display: none !important; }
+
+/* Carré : hauteur fixe, largeur proportionnelle */
+.brand__mark { height: 50px; width: auto; }
+/* Nom : chaque mot est une image à la même échelle → mêmes proportions sur une ou plusieurs lignes */
+.brand__words { display: inline-flex; flex-wrap: nowrap; align-items: flex-end; column-gap: var(--wgap, 7px); row-gap: 3px; }
+.brand__words .w-grp { display: inline-flex; align-items: flex-end; column-gap: var(--wgap, 7px); }
+.brand__words img { height: var(--wh, 22px); width: auto; display: block; }
+
+/* Tablette et petits portables : « Mobilier » / « de France » sur deux lignes */
+@media (max-width: 1180px) {
+  .brand__mark { height: 50px; }
+  .brand__words { flex-direction: column; align-items: flex-start; --wh: 20px; --wgap: 6px; }
+}
+/* Téléphone : deux lignes, plus petites */
+@media (max-width: 720px) {
+  .brand__mark { height: 42px; }
+  .brand__lockup { gap: 9px; }
+  .brand__words { --wh: 17px; --wgap: 5px; row-gap: 2px; }
+}
+/* Très petit écran : un mot par ligne */
+@media (max-width: 380px) {
+  .brand__mark { height: 46px; }
+  .brand__words, .brand__words .w-grp { flex-direction: column; align-items: flex-start; row-gap: 2px; }
+  .brand__words { --wh: 13px; }
+}
+
+/* Logo du site : seul le carré est affiché (image recadrée à gauche, même échelle),
+   suivi du nom écrit en Montserrat (police proche de celle du logo), plus petit */
+.brand__sq { display: none; flex: none; height: var(--sq, 48px); width: calc(var(--sq, 48px) * 1.04); overflow: hidden; }
+.brand--site .brand__sq { display: block; }
+.brand__sq[hidden] { display: none !important; }
+.brand__sq img { height: 100%; width: auto; max-width: none; display: block; }
+@media (max-width: 1180px) { .brand { --sq: 42px; } }
+@media (max-width: 720px) { .brand { --sq: 34px; } }
+
+/* Nom en texte (avec le carré du site, ou seul en dernier recours) */
+.brand__text { display: inline-flex; align-items: baseline; column-gap: .3em; font-family: var(--sans); font-weight: 600; font-size: var(--ts, 21px); line-height: 1.05; color: #15264a; letter-spacing: -.005em; white-space: nowrap; }
+.brand__text > span { display: inline-flex; align-items: baseline; column-gap: .3em; }
+.brand__text .bt-de { font-style: normal; font-size: 1em; color: inherit; }
+@media (max-width: 1180px) { .brand { --ts: 18px; } }
+@media (max-width: 720px) { .brand { --ts: 15px; gap: 10px; } }
+/* Très petit écran : « Mobilier » / « de France » sur deux lignes */
+@media (max-width: 360px) {
+  .brand__text { flex-direction: column; align-items: flex-start; row-gap: 1px; }
+}
+
+/* Le menu reste toujours accessible : l'en-tête ne déborde jamais */
+.header__inner { min-width: 0; }
+.burger { flex: none; }
+.brand { max-width: calc(100% - 56px); }
+
+/* Projet complet : trois choix côte à côte (photo, pellicule, bibliothèque) */
+.choice--3 { grid-template-columns: repeat(3, 1fr); }
+.choice--3 button { padding: 12px 6px; }
+.choice--3 button strong { font-size: 11px; }
+
+/* Catalogue Mobilier de France */
+.catalog { max-height: 52vh; overflow: auto; border: 1px solid var(--line); padding: 4px 16px; }
+.catalog section + section { border-top: 1px solid var(--line); }
+.catalog h3 { margin: 14px 0 6px; }
+.catalog ul { list-style: none; padding: 0; margin: 0 0 10px; }
+.catalog li { padding: 6px 0; }
+.catalog li .check { align-items: flex-start; font-size: 14px; }
+.catalog li .check input { margin-top: 2px; flex: none; }
+.catalog a { margin-left: 6px; }
+.tag-ok, .tag-warn { display: inline-block; font-size: 11px; padding: 1px 7px; margin-left: 6px; border-radius: 10px; }
+.tag-ok { background: #e6f2ea; color: var(--ok); }
+.tag-warn { background: #fff1d6; color: #8a5a00; }
+
+/* Plan : éléments d'une composition et schémas */
+.plan-svg .item .module { fill: rgba(255, 255, 255, .55); stroke: var(--blue); stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+.plan-svg .item image { mix-blend-mode: multiply; }
+
+/* ---------- Dimensions multiples et compositions ---------- */
+.size-thumb { width: 64px; height: 44px; flex: none; display: grid; place-items: center; background: #fff; border: 1px solid var(--line); overflow: hidden; }
+.size-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.size-thumb i { width: 70%; height: 55%; border: 2px solid var(--blue); background: var(--blue-soft); }
+.size-thumb i.round { border-radius: 50%; height: 70%; width: auto; aspect-ratio: 1; }
+.size-thumb.rot img { transform: rotate(90deg); }
+.sizes { display: grid; gap: 6px; margin-bottom: 8px; }
+.size-row { display: flex; align-items: center; gap: 10px; padding: 6px; border: 1px solid var(--line); }
+.size-row__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.size-row__txt strong { font-size: 13px; }
+.size-row .check { margin: 0; white-space: nowrap; }
+.size-row .icon-btn { width: 30px; height: 30px; font-size: 13px; }
+.size-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; max-height: 260px; overflow: auto; }
+.size-pick button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; background: #fff; border: 1px solid var(--line); cursor: pointer; font: 600 11px var(--sans); color: var(--ink); }
+.size-pick button .size-thumb { width: 100%; height: 52px; border: 0; }
+.size-pick button.sel { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-soft); color: var(--blue); }
+.modules { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 6px; }
+.modules li { display: flex; align-items: center; gap: 8px; padding: 6px; border: 1px solid var(--line); background: #fff; }
+.modules .size-thumb { width: 52px; height: 38px; }
+.modules__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 12px; }
+.modules__btns { display: flex; gap: 3px; flex: none; }
+.modules__btns .icon-btn { width: 28px; height: 28px; font-size: 12px; }
+.modules__btns .icon-btn.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+.modules__btns .icon-btn:disabled { opacity: .35; cursor: default; }
+
+/* Schémas vus de dessus (style pictogrammes du catalogue) */
+.plan-svg .item.has-sym rect.body { fill: rgba(255, 255, 255, .001); stroke: transparent; }
+.plan-svg .item.has-sym.sel rect.body { stroke: #e08a00; stroke-dasharray: 6 4; }
+.plan-svg .item.removed.has-sym rect.body { fill: url(#hatch); stroke: var(--danger); }
+.plan-svg .item.removed .sym, .plan-svg .item.removed .sym-soft { opacity: .55; }
+.plan-svg .sym { fill: #fff; stroke: #33363b; stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: none; }
+.plan-svg .sym-soft { fill: #d9d6cf; stroke: #33363b; stroke-width: 1.4; vector-effect: non-scaling-stroke; pointer-events: none; }
+.plan-svg .sym-line { fill: none; stroke: #6b6f75; stroke-width: 1.1; vector-effect: non-scaling-stroke; pointer-events: none; }
+.plan-svg .sym-back { stroke: #33363b; stroke-width: 4; vector-effect: non-scaling-stroke; pointer-events: none; }
+.plan-svg .sym-other { stroke-dasharray: 5 4; }
+.plan-svg .item.new .sym { fill: #f3f6fb; stroke: var(--blue); }
+.plan-svg .item.new .sym-soft { fill: #c9d6ea; stroke: var(--blue); }
+.plan-svg .item.has-sym .front { display: none; }

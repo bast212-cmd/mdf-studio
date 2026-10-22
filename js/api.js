@@ -43,7 +43,7 @@ async function tombstone(store, id) {
 const pick = (o, keys) => Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
 const notFound = (what) => Object.assign(new Error(`${what} introuvable`), { status: 404 });
 
-const FURN_FIELDS = ['name', 'reference', 'category', 'type', 'length', 'width', 'height', 'seatHeight', 'topHeight', 'extra', 'notes', 'photos', 'cover'];
+const FURN_FIELDS = ['name', 'reference', 'category', 'type', 'length', 'width', 'height', 'seatHeight', 'topHeight', 'extra', 'notes', 'photos', 'cover', 'sourceUrl', 'sizes', 'modular'];
 // mode : 'full' (parcours en 4 étapes, par défaut) ou 'quick' (rendu rapide : photo + zone + meuble)
 const ROOM_FIELDS = ['name', 'category', 'dims', 'photos', 'refPhoto', 'plan', 'extraInstructions', 'mode', 'quick'];
 

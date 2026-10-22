@@ -143,25 +143,33 @@ function loadImage(base) {
     tryNext(0);
   });
 }
+// Logo officiel du site, utilisé tant que les fichiers découpés ne sont pas dans img/
+const SITE_LOGO = 'https://www.mobilierdefrance.com/themes/mobilierdefrance/assets/img/logo_blue.png';
+const loadURL = (src) => new Promise((ok) => { const im = new Image(); im.onload = () => ok(src); im.onerror = () => ok(null); im.src = src; });
+
 async function setupLogo() {
   const brand = $('#brand');
-  const imgs = [...brand.querySelectorAll('img[data-logo]')];
-  const srcs = await Promise.all(imgs.map((im) => loadImage(im.dataset.logo)));
+  // 1. Carré + nom mot par mot : le nom peut passer à la ligne sans rien déformer
+  const parts = [...brand.querySelectorAll('img[data-logo]')];
+  const srcs = await Promise.all(parts.map((im) => loadImage(im.dataset.logo)));
   if (srcs.every(Boolean)) {
-    imgs.forEach((im, i) => { im.src = srcs[i]; });
-    brand.classList.add('brand--split', 'brand--intro');
-    setTimeout(() => brand.classList.remove('brand--intro'), 1400);
+    parts.forEach((im, i) => { im.src = srcs[i]; });
+    brand.classList.add('brand--words');
+    return;
   }
-  // En-tête compact quand on fait défiler la page (avec une marge pour éviter le clignotement)
-  const header = document.querySelector('.header');
-  let compact = false;
-  const onScroll = () => {
-    const y = window.scrollY;
-    if (!compact && y > 80) { compact = true; header.classList.add('header--compact'); }
-    else if (compact && y < 20) { compact = false; header.classList.remove('header--compact'); }
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
+  // 2. Logo complet en une image : on n'en garde que le carré (à gauche, à la même échelle),
+  //    le nom est écrit à côté en Montserrat, plus petit, pour laisser la place au menu
+  brand.querySelector('.brand__text').hidden = false;
+  const full = (await loadImage('logo')) || (await loadURL(SITE_LOGO));
+  if (full) {
+    const sq = brand.querySelector('.brand__sq');
+    sq.querySelector('img').src = full;
+    sq.hidden = false;
+    brand.classList.add('brand--site');
+    return;
+  }
+  // 3. Dernier recours : le nom seul en texte
+  brand.classList.add('brand--text');
 }
 
 // ---------- Service worker (hors ligne + installation) ----------

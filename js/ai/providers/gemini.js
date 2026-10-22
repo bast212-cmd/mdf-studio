@@ -8,10 +8,31 @@ const GOOGLE = 'https://generativelanguage.googleapis.com';
 const RELAY_URL = 'https://mdf-studio-relais.bastien-menguy.workers.dev';
 
 // Relais utilisé s'il a une adresse, sauf si l'appareil a une clé personnelle et pas de code d'accès
-const relayOf = (cfg) => {
+export const relayOf = (cfg) => {
   if (cfg?.apiKey?.trim() && !cfg?.accessCode?.trim()) return '';
   return String(cfg?.relayUrl || RELAY_URL).trim().replace(/\/+$/, '');
 };
+
+/**
+ * Télécharge une photo du catalogue Mobilier de France.
+ * Par le relais si possible (le site n'autorise pas l'accès direct depuis l'application), sinon en direct.
+ * @returns {Promise<Blob>}
+ */
+export async function fetchCatalogueImage(url, cfg) {
+  const relay = relayOf(cfg);
+  const attempts = [];
+  if (relay && cfg?.accessCode?.trim()) attempts.push(() => fetch(`${relay}/img?u=${encodeURIComponent(url)}`, { headers: { 'x-access-code': cfg.accessCode.trim() } }));
+  attempts.push(() => fetch(url, { mode: 'cors' }));
+  let last = null;
+  for (const go of attempts) {
+    try {
+      const r = await go();
+      if (r.ok && (r.headers.get('Content-Type') || '').startsWith('image/')) return await r.blob();
+      last = new Error(`HTTP ${r.status}`);
+    } catch (e) { last = e; }
+  }
+  throw last || new Error('Photo indisponible');
+}
 
 export const gemini = {
   id: 'gemini',
@@ -42,7 +63,8 @@ export const gemini = {
       options: [['auto', 'Automatique (recommandé)'], ['interactions', 'interactions uniquement'], ['generateContent', 'generateContent uniquement']] },
   ],
 
-  isConfigured: (cfg) => Boolean(relayOf(cfg) || cfg?.apiKey?.trim()),
+  // Avec le relais, le code d'accès est indispensable (le relais refuse tout sans lui)
+  isConfigured: (cfg) => Boolean(relayOf(cfg) ? cfg?.accessCode?.trim() : cfg?.apiKey?.trim()),
   modelLabel: (cfg) => cfg?.imageModel || 'gemini-3.1-flash-image',
 
   /** Vérifie la clé ; renvoie la liste des modèles d'image disponibles */

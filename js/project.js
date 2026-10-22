@@ -4,10 +4,26 @@ import { store, COLORS, TEXTURES, TEXTURE_EN } from './store.js';
 import { esc, $, $$, modal, toast, confirmDialog, bindDropzone, busy, num, furnitureDims } from './ui.js';
 import { capturePhotos } from './camera.js';
 import { src, getMediaBlob, shareOrDownload } from './data/media.js';
+import { isModular, defaultModules, defaultSize, applyFootprint } from './sizes.js';
+import { placementPanelHTML, bindPlacementPanel } from './sizes-ui.js';
+import { SHAPES, SIDED, guessShape } from './symbols.js';
 import { PlanEditor, defaultPlan, clampPlan, clampItem } from './plan.js';
 import { openFurnitureForm, pickFurniture } from './library.js';
 
 const STEPS = ['La pièce', 'Le plan', 'Aménagement', 'Rendu IA'];
+
+/** Sélecteur de photos existantes (sur iPad : « Photothèque » ; sur ordinateur : fichiers) */
+function pickFromRoll() {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    input.onchange = () => resolve([...input.files].slice(0, 4));
+    input.addEventListener('cancel', () => resolve([]));
+    input.click();
+  });
+}
 
 /** Vérifie qu'une clé est renseignée et que l'appareil est en ligne avant un appel à l'IA */
 async function ensureAIReady() {
@@ -245,6 +261,10 @@ function step2({ room, body, save, go }) {
       <div class="panel" id="props">
         <h3>${esc(sel.name)}</h3>
         <div class="field"><label>Nom</label><input data-p="name" value="${esc(sel.name)}"></div>
+        <div class="grid-2">
+          <div class="field"><label>Forme sur le plan</label><select data-p="shape">${SHAPES.map(([k, l]) => `<option value="${k}" ${(sel.shape || guessShape(sel.name)) === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+          ${SIDED.has(sel.shape || guessShape(sel.name)) ? `<div class="field"><label>${(sel.shape || guessShape(sel.name)) === 'sofa_corner' ? 'Angle' : 'Méridienne'} (vu de face)</label><select data-p="side"><option value="left" ${sel.side === 'left' ? 'selected' : ''}>à gauche</option><option value="right" ${sel.side !== 'left' ? 'selected' : ''}>à droite</option></select></div>` : '<div></div>'}
+        </div>
         ${itemPropsCommon(sel)}
         <label class="check"><input type="checkbox" data-p="remove" ${sel.remove ? 'checked' : ''}> Retirer ce meuble de la photo</label>
         <button class="btn btn--danger btn--sm" data-del>Supprimer du plan</button>
@@ -264,7 +284,10 @@ function step2({ room, body, save, go }) {
     el.querySelectorAll('[data-ref]').forEach((b) => (b.onclick = () => { room.refPhoto = Number(b.dataset.ref); save(); side(); }));
     el.querySelectorAll('[data-sel]').forEach((li) => (li.onclick = () => editor.select(li.dataset.sel)));
     if (sel) {
-      bindProps($('#props', el), sel, editor, save, (p) => { if (p === 'name' || p === 'remove') { editor.render(); } });
+      bindProps($('#props', el), sel, editor, save, (p) => {
+        if (p === 'name' || p === 'remove' || p === 'side') editor.render();
+        if (p === 'shape') { editor.render(); side(); }
+      });
       $('[data-del]', el).onclick = () => {
         room.plan.items = room.plan.items.filter((i) => i.id !== sel.id);
         room.plan.items.forEach((i) => { if (i.replacesId === sel.id) delete i.replacesId; });
@@ -274,7 +297,8 @@ function step2({ room, body, save, go }) {
     $('#addex', el).addEventListener('submit', (e) => {
       e.preventDefault();
       const f = e.target;
-      const it = { id: 'e' + uid(), kind: 'existing', name: f.name.value.trim(), w: num(f.w.value), d: num(f.d.value), h: 80, x: room.dims.length / 2, y: room.dims.width / 2, rot: 0 };
+      const name = f.name.value.trim();
+      const it = { id: 'e' + uid(), kind: 'existing', name, shape: guessShape(name), w: num(f.w.value), d: num(f.d.value), h: 80, x: room.dims.length / 2, y: room.dims.width / 2, rot: 0 };
       clampItem(it, room.dims.length, room.dims.width);
       room.plan.items.push(it);
       save(); editor.select(it.id);
@@ -324,6 +348,7 @@ function step3({ room, body, save, flush, go }) {
 
   const editor = new PlanEditor($('#planhost', body), {
     room, mode: 'new',
+    getFurniture: (id) => furnCache.get(id) || null,
     onSelect: () => side(),
     onChange: () => {
       save();
@@ -334,6 +359,8 @@ function step3({ room, body, save, flush, go }) {
   });
   $$('[data-rot]', body).forEach((b) => (b.onclick = () => { editor.rotateSelected(Number(b.dataset.rot)); side(); }));
   $('[data-back]', body).onclick = () => go(2);
+  // meubles déjà sur le plan : chargés pour afficher leurs schémas
+  Promise.all(room.plan.items.filter((i) => i.furnitureId).map((i) => getF(i.furnitureId))).then(() => editor.render());
 
   const generate = async (btn) => {
     const news = room.plan.items.filter((i) => i.kind === 'new');
@@ -375,6 +402,10 @@ function step3({ room, body, save, flush, go }) {
       w: f.length || 100, d: f.width || 60, h: f.height || 80,
       x: room.dims.length / 2, y: room.dims.width / 2, rot: 0, keepOriginal: true,
     };
+    // dimension présentée, ou composition présentée pour un meuble modulable
+    if (isModular(f)) it.modules = defaultModules(f);
+    else if (f.sizes?.length) it.sizeId = defaultSize(f)?.id;
+    applyFootprint(it, f);
     const rep = replacesId && room.plan.items.find((i) => i.id === replacesId);
     if (rep) { it.x = rep.x; it.y = rep.y; it.rot = rep.rot || 0; it.replacesId = rep.id; }
     else {
@@ -402,8 +433,9 @@ function step3({ room, body, save, flush, go }) {
     el.innerHTML = `
       <div class="panel">
         <h3>Ajouter un meuble</h3>
-        <div class="choice">
+        <div class="choice choice--3">
           <button data-shoot><span class="ico">📷</span><strong>Photo en direct</strong></button>
+          <button data-roll><span class="ico">🖼️</span><strong>Pellicule</strong></button>
           <button data-lib><span class="ico">📚</span><strong>Bibliothèque</strong></button>
         </div>
         ${news.length ? `<ul class="item-list" style="margin-top:12px">${news.map((i) => `<li data-sel="${i.id}" class="${i.id === editor.selected ? 'sel' : ''}"><span class="dot" style="background:${i.keepOriginal ? '#0a3d7c' : i.color || '#0a3d7c'}"></span>${esc(i.name)}<span class="meta">${i.replacesId ? 'remplace' : 'libre'}</span></li>`).join('')}</ul>` : '<p class="muted small" style="margin-top:12px">Aucun nouveau meuble. Ajoutez-en un, puis placez-le sur le plan.</p>'}
@@ -413,7 +445,7 @@ function step3({ room, body, save, flush, go }) {
         <h3>${esc(selEx.name)}</h3>
         ${replacer ? `<p class="small">Remplacé par <strong>${esc(replacer.name)}</strong>.</p><button class="btn btn--light btn--sm" data-sel="${replacer.id}">Voir le nouveau meuble</button>`
           : `<p class="small">Meuble présent dans la pièce. Remplacez-le par un meuble :</p>
-        <div class="choice"><button data-repshoot><span class="ico">📷</span><strong>Photo en direct</strong></button><button data-replib><span class="ico">📚</span><strong>Bibliothèque</strong></button></div>`}
+        <div class="choice choice--3"><button data-repshoot><span class="ico">📷</span><strong>Photo en direct</strong></button><button data-reproll><span class="ico">🖼️</span><strong>Pellicule</strong></button><button data-replib><span class="ico">📚</span><strong>Bibliothèque</strong></button></div>`}
       </div>` : ''}
       <div class="panel panel--sand">
         <h3>Instructions pour l'IA</h3>
@@ -427,6 +459,13 @@ function step3({ room, body, save, flush, go }) {
       if (!shots?.length) return;
       addFurniture(await openFurnitureForm({ defaults: { category: room.category }, files: shots }));
     };
+    // Photo(s) déjà prises : pellicule de l'iPad / dossier de l'ordinateur
+    const fromRoll = async (replaceId) => {
+      const files = await pickFromRoll();
+      if (files.length) addFurniture(await openFurnitureForm({ defaults: { category: room.category }, files }), replaceId);
+    };
+    $('[data-roll]', el).onclick = () => fromRoll();
+    $('[data-reproll]', el)?.addEventListener('click', () => fromRoll(selEx.id));
     $('#extra', el).addEventListener('input', (e) => { room.extraInstructions = e.target.value; save(); });
     $('[data-replib]', el)?.addEventListener('click', async () => addFurniture(await pickFurniture({ category: room.category }), selEx.id));
     $('[data-repshoot]', el)?.addEventListener('click', async () => {
@@ -444,6 +483,10 @@ function step3({ room, body, save, flush, go }) {
         if (!sel.replacesId) delete sel.replacesId;
         editor.render(); save(); side();
       }
+    });
+    bindPlacementPanel($('#placement', panel), sel, f, {
+      onChange: () => { applyFootprint(sel, f); clampItem(sel, editor.L, editor.W); editor.render(); save(); side(); },
+      saveFurniture: async (nf) => { const r = await api.updateFurniture(nf.id, { sizes: nf.sizes }); furnCache.set(r.id, r); Object.assign(f, r); },
     });
     panel.querySelectorAll('[data-color]').forEach((b) => (b.onclick = () => {
       sel.color = b.dataset.color; sel.colorName = b.title; sel.keepOriginal = false; save(); side();
@@ -467,6 +510,9 @@ function step3({ room, body, save, flush, go }) {
         sel.name = res.name;
         if (res.length) sel.w = res.length;
         if (res.width) sel.d = res.width;
+        if (isModular(res)) { sel.modules = (sel.modules || []).filter((m) => res.sizes?.some((x) => x.id === m.sizeId)); if (!sel.modules.length) sel.modules = defaultModules(res); delete sel.sizeId; }
+        else { delete sel.modules; if (res.sizes?.length && !res.sizes.some((x) => x.id === sel.sizeId)) sel.sizeId = defaultSize(res)?.id; }
+        applyFootprint(sel, res);
         clampItem(sel, editor.L, editor.W); editor.render(); save(); side();
       }
     });
@@ -475,6 +521,9 @@ function step3({ room, body, save, flush, go }) {
       if (!nf || nf === 'deleted') return;
       furnCache.set(nf.id, nf);
       Object.assign(sel, { furnitureId: nf.id, name: nf.name, w: nf.length || sel.w, d: nf.width || sel.d, h: nf.height || sel.h });
+      delete sel.modules; delete sel.sizeId;
+      if (isModular(nf)) sel.modules = defaultModules(nf); else if (nf.sizes?.length) sel.sizeId = defaultSize(nf)?.id;
+      applyFootprint(sel, nf);
       clampItem(sel, editor.L, editor.W); editor.render(); save(); side();
     };
     $('[data-del]', panel).onclick = () => { room.plan.items = room.plan.items.filter((i) => i.id !== sel.id); save(); editor.select(null); };
@@ -495,6 +544,7 @@ function step3({ room, body, save, flush, go }) {
             <option value="">Placement libre</option>
             ${existing.filter((e) => !taken.has(e.id)).map((e) => `<option value="${e.id}" ${sel.replacesId === e.id ? 'selected' : ''}>Remplace : ${esc(e.name)}</option>`).join('')}
           </select></div>
+        <div id="placement">${placementPanelHTML(sel, f)}</div>
         ${itemPropsCommon(sel)}
         <h3 style="margin-top:8px">Couleur et matière</h3>
         <label class="check"><input type="checkbox" data-p="keepOriginal" ${sel.keepOriginal ? 'checked' : ''}> Conserver le coloris d'origine</label>

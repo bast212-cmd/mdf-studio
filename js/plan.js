@@ -2,6 +2,9 @@
 // x = longueur de la pièce (gauche → droite), y = largeur (haut → bas)
 // Meuble : centre (x, y), w = longueur, d = profondeur, rot en degrés (sens horaire), face avant = côté +y local
 import { esc } from './ui.js';
+import { cachedURL, mediaURL } from './data/media.js';
+import { layoutModules, sizeById } from './sizes.js';
+import { symbolSVG, guessShape } from './symbols.js';
 
 const PAD = 70;
 const FOV = 70;
@@ -44,6 +47,8 @@ export class PlanEditor {
     this.mode = opts.mode;
     this.onSelect = opts.onSelect || (() => {});
     this.onChange = opts.onChange || (() => {});
+    // (id) => meuble de la bibliothèque (synchrone, depuis un cache) : pour dessiner schémas et compositions
+    this.getFurniture = opts.getFurniture || (() => null);
     this.selected = null;
     this.drag = null;
     this.host.addEventListener('pointerdown', (e) => this.down(e));
@@ -113,7 +118,9 @@ export class PlanEditor {
     const sel = it.id === this.selected;
     const removed = it.kind === 'existing' && (isReplaced || it.remove);
     const locked = !this.editable(it);
-    const cls = ['item', it.kind, removed ? 'removed' : '', sel ? 'sel' : ''].join(' ');
+    // schéma vu de dessus : pictogramme du catalogue / composition, sinon dessin selon la forme du meuble
+    const sym = it.kind === 'new' ? (this.shapeSVG(it) || this.symbolFor(it)) : this.symbolFor(it);
+    const cls = ['item', it.kind, removed ? 'removed' : '', sel ? 'sel' : '', sym ? 'has-sym' : ''].join(' ');
     const handle = sel && !locked
       ? `<line x1="0" y1="${-it.d / 2}" x2="0" y2="${-it.d / 2 - 28}" stroke="#e08a00" stroke-width="2"/>
          <circle class="rot-handle" data-rot="${it.id}" cx="0" cy="${-it.d / 2 - 34}" r="${Math.max(9, fs * 0.55)}" fill="#fff" stroke="#e08a00" stroke-width="3" style="cursor:crosshair"/>`
@@ -124,12 +131,67 @@ export class PlanEditor {
       <g class="${cls}" data-id="${it.id}" style="${locked ? 'opacity:.55' : ''}">
         <g transform="translate(${it.x} ${it.y}) rotate(${it.rot || 0})">
           <rect class="body" x="${-it.w / 2}" y="${-it.d / 2}" width="${it.w}" height="${it.d}" rx="3"/>
+          ${sym}
           <line class="front" x1="${-it.w / 2 + 4}" y1="${it.d / 2}" x2="${it.w / 2 - 4}" y2="${it.d / 2}"/>
           ${handle}
         </g>
         ${showLabel ? `<text class="label" x="${it.x}" y="${it.y}" text-anchor="middle" dominant-baseline="middle">${esc(label)}</text>
         <text class="label sub" x="${it.x}" y="${it.y + fs * 1.1}" text-anchor="middle" dominant-baseline="middle" style="font-size:${fs * 0.75}px">${Math.round(it.w)}×${Math.round(it.d)}</text>` : ''}
       </g>`;
+  }
+
+  /** Schéma(s) vu(s) de dessus du meuble : composition d'éléments, ou dimension choisie */
+  shapeSVG(it) {
+    const f = it.furnitureId ? this.getFurniture(it.furnitureId) : null;
+    if (!f) return '';
+    const img = (picto, x, y, w, h, rot) => {
+      if (!picto) return '';
+      const href = this.pictoHref(picto);
+      if (!href) return '';
+      const cx = x + w / 2, cy = y + h / 2;
+      const [iw, ih] = rot ? [h, w] : [w, h];
+      return `<image href="${href}" x="${cx - iw / 2}" y="${cy - ih / 2}" width="${iw}" height="${ih}" preserveAspectRatio="xMidYMid meet" ${rot ? `transform="rotate(${rot} ${cx} ${cy})"` : ''} pointer-events="none" opacity=".9"/>`;
+    };
+    const ox = -it.w / 2, oy = -it.d / 2;
+    if (it.modules?.length) {
+      const lay = layoutModules(f, it.modules);
+      if (!lay.w) return '';
+      // l'emprise du plan peut avoir été ajustée à la main : on garde les proportions des éléments
+      const kx = it.w / lay.w, ky = it.d / lay.d;
+      return lay.parts.map((p) => {
+        const x = ox + p.x * kx, y = oy + p.y * ky, w = p.w * kx, h = p.d * ky;
+        const pic = img(p.size.picto, x, y, w, h, p.rot);
+        if (pic) return `<rect class="module" x="${x}" y="${y}" width="${w}" height="${h}"/>${pic}`;
+        // pas de schéma : dessin de l'élément (dossier vers le mur ou vers l'extérieur pour un retour)
+        const lw = p.rot ? h : w, ld = p.rot ? w : h;
+        return `<g transform="translate(${x + w / 2} ${y + h / 2}) rotate(${p.rot || 0})">${symbolSVG(guessShape(`${f.type} ${f.name}`) === 'other' ? 'sideboard' : 'sofa', lw, ld, { seats: Math.max(1, Math.round(lw / 70)) })}</g>`;
+      }).join('');
+    }
+    const s = it.sizeId ? sizeById(f, it.sizeId) : null;
+    return s?.picto ? img(s.picto, ox, oy, it.w, it.d, 0) : '';
+  }
+
+  /** Dessin vu de dessus d'après la forme (meubles détectés) ou le type du meuble de la bibliothèque */
+  symbolFor(it) {
+    let shape = it.shape, opts = { side: it.side, seats: it.seats, mainDepth: it.mainDepth };
+    if (!shape) {
+      const f = it.furnitureId ? this.getFurniture(it.furnitureId) : null;
+      const s = f && it.sizeId ? sizeById(f, it.sizeId) : null;
+      shape = guessShape(`${f?.type || ''} ${f?.name || it.name || ''}`, { round: s?.round });
+    }
+    return symbolSVG(shape, it.w, it.d, opts);
+  }
+
+  pictoHref(id) {
+    const u = cachedURL(id);
+    if (u) return u;
+    // pas encore chargé : on le charge puis on redessine une fois
+    this._loading ??= new Set();
+    if (!this._loading.has(id)) {
+      this._loading.add(id);
+      mediaURL(id).then((url) => { if (url && this.host.isConnected) this.render(); });
+    }
+    return '';
   }
 
   cameraSVG() {
