@@ -1,8 +1,8 @@
 // Rendu rapide, en écrans successifs (pensé pour l'iPad) :
-// la pièce → la zone → le meuble (bibliothèque, catalogue ou photo) → finition → résultat
+// la pièce → le meuble (catalogue, bibliothèque ou photo) → finition → résultat ; l'IA choisit l'emplacement du meuble
 import { api } from './api.js';
 import { store } from './store.js';
-import { esc, $, $$, toast, confirmDialog, busy, num, furnitureDims } from './ui.js';
+import { esc, $, $$, toast, confirmDialog, busy, num, furnitureDims, modal } from './ui.js';
 import { src, storeImages, getMediaBlob, shareOrDownload } from './data/media.js';
 import { furnitureCard } from './library.js';
 import { catalogueFurniture } from './catalogue.js';
@@ -34,7 +34,6 @@ const thumbUrl = (it) => (it.photoUrls || []).find((u) => /home_default/.test(u)
 
 const STEPS = [
   { id: 'room', label: 'La pièce' },
-  { id: 'zone', label: 'La zone' },
   { id: 'furniture', label: 'Le meuble' },
   { id: 'finish', label: 'Finition' },
 ];
@@ -80,6 +79,8 @@ export async function renderQuick(view, { id }) {
   room.quick.furniture ??= { photos: [] };
   room.renders ??= [];
   const q = room.quick;
+  // plus de zone tracée : l'IA choisit l'emplacement (on oublie celle des anciens projets)
+  delete q.zone; delete q.keep; delete q.action;
   await store.loadCategories();
 
   // ---------- sauvegarde différée ----------
@@ -91,17 +92,16 @@ export async function renderQuick(view, { id }) {
 
   const photo = () => room.photos?.[0] || null;
   const hasFurniture = () => q.furniture.photos.length > 0;
-  const ready = () => photo() && q.zone && hasFurniture();
-  const reachable = (s) => ({ room: true, zone: Boolean(photo()), furniture: Boolean(photo() && q.zone), finish: Boolean(ready()), result: Boolean(current) })[s];
+  const ready = () => photo() && hasFurniture();
+  const reachable = (s) => ({ room: true, furniture: Boolean(photo()), finish: Boolean(ready()), result: Boolean(current) })[s];
 
   let current = room.renders[0] || null;
   let loading = false;
   let error = null;
-  let tool = 'zone'; // 'zone' : zone du nouveau meuble · 'keep' : objets à garder devant
-  let furnTab = q.furniture.source || 'library'; // 'library' · 'catalogue' · 'photo'
+  let furnTab = q.furniture.source || 'catalogue'; // 'catalogue' · 'library' · 'photo'
   const filter = { q: '', category: '' };
   // écran d'arrivée : le résultat s'il existe, sinon la première étape à faire
-  let step = current || pending.has(room.id) ? 'result' : !photo() ? 'room' : !q.zone ? 'zone' : !hasFurniture() ? 'furniture' : 'finish';
+  let step = current || pending.has(room.id) ? 'result' : !photo() ? 'room' : !hasFurniture() ? 'furniture' : 'finish';
 
   view.innerHTML = `
     <div class="quickwiz">
@@ -131,7 +131,7 @@ export async function renderQuick(view, { id }) {
   // =================================================================
   function drawSteps() {
     const list = [...STEPS, ...(current || loading ? [{ id: 'result', label: 'Résultat' }] : [])];
-    const doneOf = { room: Boolean(photo()), zone: Boolean(q.zone), furniture: hasFurniture(), finish: Boolean(current), result: false };
+    const doneOf = { room: Boolean(photo()), furniture: hasFurniture(), finish: Boolean(current), result: false };
     stepsEl.innerHTML = list.map((s, i) => `
       <li><button data-step="${s.id}" class="${s.id === step ? 'active' : doneOf[s.id] ? 'done' : ''}" ${reachable(s.id) && !loading ? '' : 'disabled'}>
         <span class="n">${s.id === 'result' ? '★' : doneOf[s.id] && s.id !== step ? '✓' : i + 1}</span><span class="t">${s.label}</span>
@@ -146,23 +146,24 @@ export async function renderQuick(view, { id }) {
     const backBtn = back ? `<button class="btn btn--light" data-back>‹ ${step === 'result' ? 'Modifier' : 'Retour'}</button>` : '<span></span>';
     let next = '';
     if (step === 'finish') next = `<button class="btn btn--lg" data-gen ${ready() ? '' : 'disabled'}>${current ? '↻ Relancer le rendu ✨' : 'Lancer le rendu ✨'}</button>`;
-    else if (step === 'result') next = `<button class="btn btn--lg" data-gen>↻ Relancer le rendu ✨</button>`;
+    else if (step === 'result') next = `<button class="btn btn--lg" data-regen>↻ Relancer le rendu ✨</button>`;
     else {
       const ok = reachable(STEPS[idx + 1].id);
-      const missing = { room: 'Ajoutez la photo de la pièce', zone: 'Tracez la zone sur la photo', furniture: 'Choisissez un meuble' }[step];
+      const missing = { room: 'Ajoutez la photo de la pièce', furniture: 'Choisissez un meuble' }[step];
       next = `<span class="wiz-next">${ok ? '' : `<span class="muted small">${missing}</span>`}<button class="btn btn--lg" data-next ${ok ? '' : 'disabled'}>Suivant ›</button></span>`;
     }
     nav.innerHTML = backBtn + next;
     $('[data-back]', nav)?.addEventListener('click', () => go(back));
     $('[data-next]', nav)?.addEventListener('click', () => go(STEPS[idx + 1].id));
-    $('[data-gen]', nav)?.addEventListener('click', generate);
+    $('[data-gen]', nav)?.addEventListener('click', () => generate());
+    $('[data-regen]', nav)?.addEventListener('click', askRevision);
   }
 
   function draw() {
     drawSteps();
     drawNav();
     if (loading) return drawLoading();
-    ({ room: drawRoom, zone: drawZone, furniture: drawFurniture, finish: drawFinish, result: drawResult })[step]();
+    ({ room: drawRoom, furniture: drawFurniture, finish: drawFinish, result: drawResult })[step]();
   }
 
   // =================================================================
@@ -176,13 +177,10 @@ export async function renderQuick(view, { id }) {
       ${p ? `<div class="wiz-photo"><img ${src(p.media)} alt="Photo de la pièce"></div><p class="muted small wiz-center">Photo choisie. Vous pouvez la remplacer :</p>` : ''}
       ${sourceButtons('room', { big: !p })}
       <div id="recent"></div>`;
-    const setRoom = async (ph) => {
-      if (q.zone && !(await confirmDialog('Remplacer la photo de la pièce ? La zone tracée sera effacée.', 'Remplacer', false))) return;
+    const setRoom = (ph) => {
       room.photos = [ph];
-      delete q.zone;
-      delete q.keep;
       save();
-      go('zone');
+      go(hasFurniture() ? 'finish' : 'furniture');
     };
     const add = async (camera) => {
       const files = await pickImages({ camera });
@@ -208,96 +206,7 @@ export async function renderQuick(view, { id }) {
   }
 
   // =================================================================
-  // 2. La zone
-  // =================================================================
-  function drawZone() {
-    const p = photo();
-    const keep = q.keep || [];
-    body.innerHTML = `
-      <div class="zone-bar">
-        <div class="seg tools">
-          <button data-tool="zone" class="${tool === 'zone' ? 'sel' : ''}">▭ Zone du meuble</button>
-          <button data-tool="keep" class="${tool === 'keep' ? 'sel keep' : ''}">▭ Objet devant${keep.length ? ` (${keep.length})` : ''}</button>
-          ${q.zone ? '<button data-zclear>Effacer</button>' : ''}
-        </div>
-        <div class="seg">
-          <button data-action="replace" class="${q.action !== 'add' ? 'sel' : ''}">Remplacer ce qui s'y trouve</button>
-          <button data-action="add" class="${q.action === 'add' ? 'sel' : ''}">Ajouter sans rien retirer</button>
-        </div>
-      </div>
-      <p class="muted small zone-hint">${tool === 'keep'
-        ? 'Entourez chaque objet qui doit rester <strong>devant</strong> le nouveau meuble (table basse, fauteuil, plante…). Il ne sera ni retiré ni modifié.'
-        : 'Tracez au doigt l\'emplacement du meuble, y compris la partie cachée derrière un autre objet. Glissez la zone pour la déplacer.'}</p>
-      <div class="zone-editor ${tool === 'keep' ? 'tool-keep' : ''}" id="zed">
-        <img ${src(p.media)} alt="Photo de la pièce" draggable="false">
-        <div class="zone ${q.zone ? '' : 'hidden'}"><span>${q.action === 'add' ? 'Ajouter ici' : 'Remplacer ici'}</span></div>
-        ${keep.map((k, i) => `<div class="keepbox" style="left:${k.x * 100}%;top:${k.y * 100}%;width:${k.w * 100}%;height:${k.h * 100}%"><span>Devant</span><button data-krm="${i}" aria-label="Retirer">×</button></div>`).join('')}
-      </div>`;
-    bindZone($('#zed', body));
-    $$('[data-action]', body).forEach((b) => (b.onclick = () => { q.action = b.dataset.action; save(); draw(); }));
-    $$('[data-tool]', body).forEach((b) => (b.onclick = () => { tool = b.dataset.tool; draw(); }));
-    $('[data-zclear]', body)?.addEventListener('click', () => { delete q.zone; save(); draw(); });
-  }
-
-  function bindZone(ed) {
-    const box = $('.zone', ed);
-    let ghost = null; // rectangle en cours de tracé (outil « objet devant »)
-    const place = (el, z) => {
-      el.style.left = `${z.x * 100}%`; el.style.top = `${z.y * 100}%`;
-      el.style.width = `${z.w * 100}%`; el.style.height = `${z.h * 100}%`;
-      el.classList.remove('hidden');
-    };
-    if (q.zone) place(box, q.zone);
-    const rel = (e) => {
-      const r = ed.getBoundingClientRect();
-      return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) };
-    };
-    let drag = null;
-    ed.addEventListener('pointerdown', (e) => {
-      const rm = e.target.closest('[data-krm]');
-      if (rm) { q.keep.splice(Number(rm.dataset.krm), 1); save(); draw(); return; }
-      e.preventDefault();
-      ed.setPointerCapture(e.pointerId);
-      const P = rel(e);
-      const z = q.zone;
-      if (tool === 'zone' && z && P.x > z.x && P.x < z.x + z.w && P.y > z.y && P.y < z.y + z.h) drag = { type: 'move', ox: P.x - z.x, oy: P.y - z.y };
-      else drag = { type: 'draw', sx: P.x, sy: P.y };
-      if (tool === 'keep') { ghost = document.createElement('div'); ghost.className = 'keepbox hidden'; ed.appendChild(ghost); }
-    });
-    ed.addEventListener('pointermove', (e) => {
-      if (!drag) return;
-      const P = rel(e);
-      if (drag.type === 'move') {
-        const z = q.zone;
-        z.x = Math.min(1 - z.w, Math.max(0, P.x - drag.ox));
-        z.y = Math.min(1 - z.h, Math.max(0, P.y - drag.oy));
-        place(box, z);
-      } else {
-        drag.z = { x: Math.min(drag.sx, P.x), y: Math.min(drag.sy, P.y), w: Math.abs(P.x - drag.sx), h: Math.abs(P.y - drag.sy) };
-        place(tool === 'keep' ? ghost : box, drag.z);
-      }
-    });
-    const end = () => {
-      if (!drag) return;
-      const wasDraw = drag.type === 'draw';
-      const big = drag.z && drag.z.w > 0.02 && drag.z.h > 0.02;
-      if (wasDraw && tool === 'keep') {
-        if (big) { q.keep = [...(q.keep || []), drag.z].slice(-4); }
-        ghost?.remove(); ghost = null;
-      } else if (wasDraw) {
-        if (big && drag.z.w > 0.03 && drag.z.h > 0.03) q.zone = drag.z;
-        else if (q.zone) place(box, q.zone); else box.classList.add('hidden');
-      }
-      drag = null;
-      save();
-      if (wasDraw) draw();
-    };
-    ed.addEventListener('pointerup', end);
-    ed.addEventListener('pointercancel', end);
-  }
-
-  // =================================================================
-  // 3. Le meuble : bibliothèque, catalogue ou photo
+  // 2. Le meuble : catalogue, bibliothèque ou photo
   // =================================================================
   // Copie des photos et cotes d'un meuble de la bibliothèque (les images sont partagées, pas dupliquées)
   const useFurniture = (f, source) => {
@@ -305,7 +214,7 @@ export async function renderQuick(view, { id }) {
     if (f.cover) ph.unshift(...ph.splice(f.cover, 1));
     q.furniture = {
       photos: ph.slice(0, 3).map(({ media, w, h }) => ({ media, w, h })),
-      name: f.name || '', length: f.length, width: f.width, height: f.height, notes: f.notes || '',
+      name: f.name || '', type: f.type || '', length: f.length, width: f.width, height: f.height, notes: f.notes || '',
       libraryId: f.id, source,
     };
     save();
@@ -316,7 +225,7 @@ export async function renderQuick(view, { id }) {
     const f = q.furniture;
     const all = await api.furniture();
     if (!view.isConnected || step !== 'furniture') return;
-    const tabs = [['library', `Ma bibliothèque <span class="muted">(${all.length})</span>`], ['catalogue', 'Catalogue MDF'], ['photo', 'Photo du meuble']];
+    const tabs = [['catalogue', 'Catalogue MDF'], ['library', `Ma bibliothèque <span class="muted">(${all.length})</span>`], ['photo', 'Photo du meuble']];
     body.innerHTML = `
       <div class="wiz-head"><div><h2>Le meuble</h2><p class="muted">Choisissez un modèle, ou photographiez le meuble.</p></div></div>
       ${hasFurniture() ? `<div class="selbar"><img ${src(f.photos[0].media)} alt=""><div><strong>${esc(f.name || 'Meuble photographié')}</strong>
@@ -463,7 +372,7 @@ export async function renderQuick(view, { id }) {
   }
 
   // =================================================================
-  // 4. Finition : matière et consignes, puis lancement
+  // 3. Finition : matière et consignes, puis lancement
   // =================================================================
   function drawFinish() {
     const p = photo();
@@ -472,7 +381,7 @@ export async function renderQuick(view, { id }) {
       ${errorHTML()}
       <div class="wiz-head"><div><h2>Finition</h2><p class="muted">Facultatif : changez la matière ou donnez une consigne, puis lancez le rendu.</p></div></div>
       <div class="recap">
-        <div><img ${src(p.media)} alt=""><span class="muted small">La pièce · ${q.action === 'add' ? 'ajout' : 'remplacement'}</span></div>
+        <div><img ${src(p.media)} alt=""><span class="muted small">La pièce</span></div>
         <div><img ${src(f.photos[0].media)} alt=""><span class="muted small">${esc(f.name || 'Meuble photographié')}</span></div>
       </div>
       <div class="grid-2 finish">
@@ -503,8 +412,22 @@ export async function renderQuick(view, { id }) {
   // =================================================================
   // Génération et résultat
   // =================================================================
-  async function generate() {
+  // Relance depuis le résultat : consigne de correction facultative, valable pour ce nouveau rendu seulement
+  function askRevision() {
+    const m = modal({
+      title: 'Relancer le rendu',
+      content: `<p class="small">Que faut-il changer par rapport au rendu actuel ? Facultatif : laissez vide pour simplement relancer.</p>
+        <div class="field" style="margin:0"><textarea id="rev" rows="4" placeholder="Ex. le canapé plus à gauche, garder le tapis, tissu un peu plus clair"></textarea></div>`,
+      footer: '<button class="btn btn--light" data-close>Annuler</button><button class="btn" data-go>Relancer le rendu ✨</button>',
+    });
+    const ta = $('#rev', m.el);
+    ta.focus();
+    $('[data-go]', m.el).onclick = () => { const note = ta.value.trim(); m.close(); generate(note); };
+  }
+
+  async function generate(revision = '') {
     if (!ready() || !(await ensureAIReady())) return;
+    if (revision) q.revision = revision; else delete q.revision;
     await flush();
     const p = api.generateQuick(room.id)
       .then((r) => ({ ok: true, render: r }))
@@ -548,18 +471,18 @@ export async function renderQuick(view, { id }) {
     const p = photo();
     body.innerHTML = `
       ${errorHTML()}
+      <div class="btn-row result-actions">
+        <button class="btn ${current.saved ? '' : 'btn--ghost'} btn--sm" data-save>${current.saved ? '★ Sauvegardé' : '☆ Sauvegarder'}</button>
+        <button class="btn btn--ghost btn--sm" data-dl>Enregistrer / partager l'image</button>
+        <button class="btn btn--light btn--sm" data-other>Essayer un autre meuble</button>
+        <button class="btn btn--danger btn--sm" data-delr>Supprimer ce rendu</button>
+        <span class="muted small result-hint">Glissez sur l'image pour comparer avant / après</span>
+      </div>
       <div class="compare" id="cmp">
         <img ${src(p?.media || current.media)} alt="Avant">
         <div class="after" style="clip-path:inset(0 0 0 50%)"><img ${src(current.media)} alt="Après"></div>
         <span class="tag" style="left:12px">Avant</span><span class="tag" style="right:12px">Après</span>
         <div class="bar" style="left:50%"></div>
-      </div>
-      <p class="muted small" style="margin-top:8px">Faites glisser le curseur pour comparer avant / après.</p>
-      <div class="btn-row" style="margin-top:12px">
-        <button class="btn ${current.saved ? '' : 'btn--ghost'} btn--sm" data-save>${current.saved ? '★ Sauvegardé' : '☆ Sauvegarder'}</button>
-        <button class="btn btn--ghost btn--sm" data-dl>Enregistrer / partager l'image</button>
-        <button class="btn btn--light btn--sm" data-other>Essayer un autre meuble</button>
-        <button class="btn btn--danger btn--sm" data-delr>Supprimer ce rendu</button>
       </div>
       ${room.renders.length > 1 ? `<h3 style="margin-top:24px">Historique</h3>
         <div class="history">${room.renders.map((r) => `<button data-r="${r.id}" class="${r.id === current.id ? 'sel' : ''}"><img ${src(r.media)} alt="">${r.saved ? '<span class="star">★</span>' : ''}</button>`).join('')}</div>` : ''}
@@ -572,6 +495,7 @@ export async function renderQuick(view, { id }) {
     cmp.addEventListener('pointerdown', (e) => { dragging = true; cmp.setPointerCapture(e.pointerId); set(e.clientX); });
     cmp.addEventListener('pointermove', (e) => dragging && set(e.clientX));
     cmp.addEventListener('pointerup', () => (dragging = false));
+    cmp.addEventListener('pointercancel', () => (dragging = false)); // glissé vertical : la page défile
 
     $$('[data-r]', body).forEach((b) => (b.onclick = () => { current = room.renders.find((r) => r.id === b.dataset.r); error = null; draw(); }));
     $('[data-other]', body).onclick = () => go('furniture');

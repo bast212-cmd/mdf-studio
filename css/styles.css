@@ -195,7 +195,7 @@ h3 { font-size: 15px; text-transform: uppercase; letter-spacing: .08em; font-wei
 .texture.sel { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); color: var(--blue); font-weight: 600; }
 
 /* ---------- Rendu ---------- */
-.compare { position: relative; overflow: hidden; background: #111; user-select: none; touch-action: none; }
+.compare { position: relative; overflow: hidden; background: #111; user-select: none; touch-action: pan-y; }
 .compare img { width: 100%; height: auto; display: block; }
 .compare .after { position: absolute; inset: 0; }
 .compare .after img { width: 100%; height: 100%; object-fit: cover; }
@@ -517,7 +517,6 @@ img.img-missing { visibility: hidden; }
 .finish .field textarea { min-height: 140px; }
 .texrow { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
 .texrow img { width: 96px; height: 72px; object-fit: cover; }
-.wiz-body .zone-editor img { max-height: max(300px, calc(100dvh - 400px)); }
 @media (max-width: 720px) {
   .wiz-head .seg { min-width: 0; width: 100%; }
   .finish { grid-template-columns: 1fr; }
@@ -528,10 +527,6 @@ img.img-missing { visibility: hidden; }
 .quickwiz #pname { font-family: var(--serif); font-size: 22px; border: 0; padding: 0; background: transparent; }
 .quickwiz .wiz-steps button { padding: 10px 8px; }
 .quickwiz .wiz-head h2 { font-size: 24px; }
-.zone-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px; }
-.zone-bar .seg.tools { margin-bottom: 0; }
-.zone-hint { margin: 0 0 10px; }
-@media (max-width: 720px) { .zone-bar { grid-template-columns: 1fr; } }
 .spinner--sm { width: 22px; height: 22px; border-width: 2px; margin: 0; }
 .quickwiz .filters > * { min-width: 160px; }
 
@@ -582,3 +577,11 @@ body { background: var(--page); }
 
 /* Barre de navigation du Rendu rapide sur fond lin */
 .wiz-nav { background: var(--page); }
+
+/* Résultat du Rendu rapide : l'avant/après tient dans l'écran (iPad en paysage),
+   et un glissé vertical sur l'image fait défiler la page (le curseur ne réagit qu'au glissé horizontal) */
+.quickwiz .compare { width: fit-content; max-width: 100%; margin: 0 auto; }
+.quickwiz .compare > img { width: auto; max-width: 100%; max-height: max(240px, calc(100dvh - 450px)); }
+.result-actions { margin-bottom: 12px; align-items: center; }
+.result-hint { margin-left: auto; }
+@media (max-width: 720px) { .result-hint { display: none; } }

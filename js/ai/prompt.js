@@ -158,8 +158,8 @@ export function buildQuickPrompt(q, idx) {
   L.push('You are an expert interior-design photo retoucher. Edit a real photograph of a room to show a new piece of furniture, keeping it 100% photorealistic.');
   L.push('');
   L.push(`IMAGE ${idx.base} is the BASE PHOTO of the room. The output must be this exact photo: same framing, same camera viewpoint and lens, same aspect ratio, same walls, floor, windows, lighting and shadows. Only change what is described below.`);
-  L.push(`IMAGE ${idx.marked} is the same photo with a RED RECTANGLE marking the target area: horizontally from ${pct(z.x)}% to ${pct(z.x + z.w)}% of the image width, vertically from ${pct(z.y)}% to ${pct(z.y + z.h)}% of the image height. The red rectangle is only a guide: it must NOT appear in the output.`);
-  const keep = q.keep || [];
+  if (z) L.push(`IMAGE ${idx.marked} is the same photo with a RED RECTANGLE marking the target area: horizontally from ${pct(z.x)}% to ${pct(z.x + z.w)}% of the image width, vertically from ${pct(z.y)}% to ${pct(z.y + z.h)}% of the image height. The red rectangle is only a guide: it must NOT appear in the output.`);
+  const keep = z ? q.keep || [] : [];
   if (keep.length) {
     L.push(`IMAGE ${idx.marked} also shows ${keep.length > 1 ? `${keep.length} BLUE RECTANGLES` : 'a BLUE RECTANGLE'} around object${keep.length > 1 ? 's' : ''} that stand${keep.length > 1 ? '' : 's'} IN FRONT of the new furniture (closer to the camera): ${keep.map((k) => `from ${pct(k.x)}% to ${pct(k.x + k.w)}% of the width and ${pct(k.y)}% to ${pct(k.y + k.h)}% of the height`).join('; ')}. Blue rectangles are guides too and must NOT appear in the output.`);
   }
@@ -167,7 +167,12 @@ export function buildQuickPrompt(q, idx) {
   if (idx.texture) L.push(`IMAGE ${idx.texture} is a material / texture sample.`);
   L.push('');
   L.push('TASK:');
-  if (q.action === 'add') {
+  if (!z) {
+    // Sans zone tracée : l'IA choisit l'emplacement
+    const kind = f.type ? ` (a ${f.type}, French furniture type)` : '';
+    L.push(`- Find the best place for ${name}${kind} in this room. If the room already contains a piece of the same kind (for example a sofa when the new furniture is a sofa), REMOVE that piece and PUT ${name} exactly in its place. Otherwise, place it in the most natural free spot on the floor where such furniture usually stands. Rebuild the floor and wall naturally wherever an old object is no longer covered.`);
+    L.push('- Keep every other object of the room in place. Whatever stands closer to the camera than the new furniture (coffee table, armchair, plant…) stays in front of it and hides the parts behind it.');
+  } else if (q.action === 'add') {
     L.push(`- ADD ${name} inside the marked area. Keep every existing object of the room in place; only cover what the new furniture naturally hides.`);
   } else {
     L.push(`- REMOVE the furniture or objects currently standing in the red area${keep.length ? ' (EXCEPT the objects marked in blue, which stay)' : ''}, and PUT ${name} in their place. Rebuild the floor and wall naturally wherever the old object is no longer covered.`);
@@ -175,7 +180,9 @@ export function buildQuickPrompt(q, idx) {
   if (keep.length) {
     L.push(`- DEPTH / OCCLUSION, very important: the new furniture is placed BEHIND the object${keep.length > 1 ? 's' : ''} marked in blue. ${keep.length > 1 ? 'These objects' : 'This object'} must stay exactly where ${keep.length > 1 ? 'they are' : 'it is'}, unchanged and fully visible, and must HIDE the parts of the new furniture located behind ${keep.length > 1 ? 'them' : 'it'}. Do not move, shrink, remove or redraw ${keep.length > 1 ? 'them' : 'it'}, and do not draw the new furniture over ${keep.length > 1 ? 'them' : 'it'}. Layer order from back to front: wall, new furniture, blue-marked object${keep.length > 1 ? 's' : ''}. The new furniture's base is farther from the camera, so it is drawn smaller and higher in the image than the object${keep.length > 1 ? 's' : ''} in front.`);
   }
-  L.push('- The marked rectangle shows approximately the space the new furniture should occupy in the photo. It stands on the floor, oriented naturally in the room (aligned with the nearby wall or with the furniture it replaces), with a correct perspective matching the base photo.');
+  L.push(z
+    ? '- The marked rectangle shows approximately the space the new furniture should occupy in the photo. It stands on the floor, oriented naturally in the room (aligned with the nearby wall or with the furniture it replaces), with a correct perspective matching the base photo.'
+    : '- The new furniture stands on the floor, oriented naturally in the room (aligned with the nearby wall or with the furniture it replaces), with a correct perspective matching the base photo.');
   const dims = [];
   if (f.length) dims.push(`length ${fmt(f.length)} cm`);
   if (f.width) dims.push(`depth ${fmt(f.width)} cm`);
@@ -191,6 +198,7 @@ export function buildQuickPrompt(q, idx) {
   L.push('');
   L.push('RULES: reproduce the new furniture faithfully from its reference photo (shape, proportions, legs, cushions, details); respect depth: whatever is closer to the camera stays in front and hides what is behind it; realistic contact shadows and reflections consistent with the existing light; ignore the background of the furniture photo; do not add any other object, text, watermark or people; do not crop or change the camera angle.');
   if (q.extraInstructions) L.push(`ADDITIONAL INSTRUCTIONS FROM THE USER (French): ${q.extraInstructions}`);
+  if (q.revision) L.push(`CORRECTION REQUESTED FOR THIS NEW VERSION, apply it in priority (French): ${q.revision}`);
   L.push('Return only the edited photo.');
   return L.join('\n');
 }
