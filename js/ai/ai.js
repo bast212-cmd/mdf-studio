@@ -182,13 +182,16 @@ export async function generateQuickRender(room) {
   const q = room.quick || {};
   const ref = room.photos?.[0];
   if (!ref) throw new Error('Ajoutez la photo de la pièce');
-  if (!q.zone || q.zone.w < 0.01 || q.zone.h < 0.01) throw new Error('Tracez la zone où placer le meuble');
   const fPhotos = q.furniture?.photos || [];
   if (!fPhotos.length) throw new Error('Ajoutez la photo du meuble');
 
-  const images = [await readImage(ref.media), await markedImage(ref.media, q.zone, q.keep || [])];
+  // Zone facultative (anciens projets) : sans zone, l'IA choisit l'emplacement du meuble
+  const zone = q.zone && q.zone.w >= 0.01 && q.zone.h >= 0.01 ? q.zone : null;
+  const images = [await readImage(ref.media)];
   if (!images[0]) throw new Error('Photo de la pièce introuvable');
-  const idx = { base: 1, marked: 2, furniture: [], texture: null };
+  if (zone) images.push(await markedImage(ref.media, zone, q.keep || []));
+  const idx = { base: 1, marked: zone ? 2 : null, furniture: [], texture: null };
+  const pq = { ...q, zone };
   for (const p of fPhotos.slice(0, 3)) {
     const im = await readImage(p.media);
     if (im) { images.push(im); idx.furniture.push(images.length); }
@@ -199,7 +202,7 @@ export async function generateQuickRender(room) {
     if (im) { images.push(im); idx.texture = images.length; }
   }
 
-  const prompt = buildQuickPrompt(q, idx);
+  const prompt = buildQuickPrompt(pq, idx);
   const result = await provider.generateImage({ prompt, images, aspectRatio: nearestRatio(ref.w, ref.h) }, cfg);
   const img = result.images[0];
   const media = await putMedia(base64ToBlob(img.data, img.mimeType || 'image/png'));
