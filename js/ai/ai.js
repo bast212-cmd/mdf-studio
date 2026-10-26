@@ -1,7 +1,7 @@
 // Orchestration de l'IA côté appareil : portage des routes /analyze et /generate de l'ancien serveur.
 import { api, uid, now } from '../api.js';
 import { getMediaBlob, blobToBase64, base64ToBlob, putMedia } from '../data/media.js';
-import { buildPrompt, buildQuickPrompt, nearestRatio } from './prompt.js';
+import { buildPrompt, buildQuickPrompt, buildCheckPrompt, nearestRatio } from './prompt.js';
 import { isModular, sizesOf, sizeById, describeModules, drawLayoutPNG, dimsLabel } from '../sizes.js';
 import { SHAPES, SIDED, normShape, guessShape } from '../symbols.js';
 
@@ -141,7 +141,7 @@ export async function generateRender(room) {
   }
 
   const prompt = buildPrompt({ room, items: enriched, refIdx, ctxIdx, extraInstructions: room.extraInstructions });
-  const result = await provider.generateImage({ prompt, images, aspectRatio: nearestRatio(ref.w, ref.h) }, cfg);
+  const result = await provider.generateImage({ prompt, images, aspectRatio: nearestRatio(ref.w, ref.h), kind: 'projet' }, cfg);
 
   const img = result.images[0];
   const media = await putMedia(base64ToBlob(img.data, img.mimeType || 'image/png'));
@@ -156,25 +156,8 @@ export async function generateRender(room) {
 
 // ---------- Rendu rapide ----------
 
-/** Copie de la photo avec la zone entourée en rouge (repère pour l'IA) */
-async function markedImage(mediaId, zone, keep = []) {
-  const blob = await getMediaBlob(mediaId);
-  const bmp = await createImageBitmap(blob);
-  const c = document.createElement('canvas');
-  c.width = bmp.width; c.height = bmp.height;
-  const g = c.getContext('2d');
-  g.drawImage(bmp, 0, 0);
-  bmp.close?.();
-  const lw = Math.max(4, Math.round(Math.max(c.width, c.height) / 220));
-  g.strokeStyle = '#ff0000';
-  g.lineWidth = lw;
-  g.strokeRect(zone.x * c.width, zone.y * c.height, zone.w * c.width, zone.h * c.height);
-  // objets à garder devant le nouveau meuble : en bleu
-  g.strokeStyle = '#0050ff';
-  for (const k of keep) g.strokeRect(k.x * c.width, k.y * c.height, k.w * c.width, k.h * c.height);
-  const out = await new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.9));
-  return { mimeType: 'image/jpeg', data: await blobToBase64(out) };
-}
+/** Meubles du rendu rapide : q.items (ensemble), ou q.furniture des projets plus anciens */
+export const quickItems = (q) => (q?.items?.length ? q.items : q?.furniture?.photos?.length ? [q.furniture] : []);
 
 export async function generateQuickRender(room) {
   const { provider, cfg } = await active();
@@ -182,28 +165,30 @@ export async function generateQuickRender(room) {
   const q = room.quick || {};
   const ref = room.photos?.[0];
   if (!ref) throw new Error('Ajoutez la photo de la pièce');
-  const fPhotos = q.furniture?.photos || [];
-  if (!fPhotos.length) throw new Error('Ajoutez la photo du meuble');
+  const items = quickItems(q).filter((it) => it.photos?.length).slice(0, 3);
+  if (!items.length) throw new Error('Choisissez au moins un meuble');
 
-  // Zone facultative (anciens projets) : sans zone, l'IA choisit l'emplacement du meuble
-  const zone = q.zone && q.zone.w >= 0.01 && q.zone.h >= 0.01 ? q.zone : null;
   const images = [await readImage(ref.media)];
   if (!images[0]) throw new Error('Photo de la pièce introuvable');
-  if (zone) images.push(await markedImage(ref.media, zone, q.keep || []));
-  const idx = { base: 1, marked: zone ? 2 : null, furniture: [], texture: null };
-  const pq = { ...q, zone };
-  for (const p of fPhotos.slice(0, 3)) {
-    const im = await readImage(p.media);
-    if (im) { images.push(im); idx.furniture.push(images.length); }
+  const idx = { base: 1, items: [], texture: null };
+  // 3 photos pour un meuble seul, 2 par meuble pour un ensemble (le modèle accepte un nombre limité d'images)
+  const perItem = items.length > 1 ? 2 : 3;
+  for (const it of items) {
+    const n = [];
+    for (const p of it.photos.slice(0, perItem)) {
+      const im = await readImage(p.media);
+      if (im) { images.push(im); n.push(images.length); }
+    }
+    if (!n.length) throw new Error(`Photo introuvable pour « ${it.name || 'le meuble'} »`);
+    idx.items.push(n);
   }
-  if (!idx.furniture.length) throw new Error('Photo du meuble introuvable');
   if (q.texture?.media) {
     const im = await readImage(q.texture.media);
     if (im) { images.push(im); idx.texture = images.length; }
   }
 
-  const prompt = buildQuickPrompt(pq, idx);
-  const result = await provider.generateImage({ prompt, images, aspectRatio: nearestRatio(ref.w, ref.h) }, cfg);
+  const prompt = buildQuickPrompt({ ...q, items }, idx);
+  const result = await provider.generateImage({ prompt, images, aspectRatio: nearestRatio(ref.w, ref.h), kind: 'rendu-rapide' }, cfg);
   const img = result.images[0];
   const media = await putMedia(base64ToBlob(img.data, img.mimeType || 'image/png'));
   const render = {
@@ -213,4 +198,41 @@ export async function generateQuickRender(room) {
   };
   await api.addRender(room.id, render);
   return render;
+}
+
+/**
+ * Garde-fou après un rendu rapide : l'IA compare le rendu aux photos des meubles choisis
+ * (présents, fidèles au modèle, rien d'autre d'ajouté). Le résultat est enregistré sur le rendu.
+ */
+export async function checkQuickRender(room, renderId) {
+  const { provider, cfg } = await active();
+  const render = room.renders?.find((r) => r.id === renderId);
+  if (!render || !provider.analyzeJSON || !provider.isConfigured(cfg)) return null;
+  const q = render.quickSnapshot || room.quick || {};
+  const items = quickItems(q).filter((it) => it.photos?.length).slice(0, 3);
+  if (!items.length || !room.photos?.[0]) return null;
+
+  const images = [await readImage(room.photos[0].media), await readImage(render.media)];
+  for (const it of items) images.push(await readImage(it.photos[0].media));
+  if (images.some((im) => !im)) return null;
+
+  const out = await provider.analyzeJSON(buildCheckPrompt(items, q), images, cfg, 'controle');
+  const text = (v, n = 300) => String(v || '').trim().slice(0, n);
+  const check = {
+    verdict: out?.verdict === 'ok' ? 'ok' : 'warning',
+    summary: text(out?.summary_fr),
+    correction: text(out?.correction_fr),
+    items: (Array.isArray(out?.items) ? out.items : []).slice(0, 3).map((x, i) => ({
+      name: text(x?.name, 80) || items[i]?.name || '',
+      present: x?.present !== false,
+      faithful: x?.faithful !== false,
+      issue: text(x?.issue_fr, 200),
+    })),
+    otherChanges: text(out?.other_changes_fr, 200),
+    checkedAt: now(),
+  };
+  // un meuble absent ou non fidèle suffit à demander une vérification, quel que soit le verdict global
+  if (check.items.some((x) => !x.present || !x.faithful)) check.verdict = 'warning';
+  await api.updateRender(room.id, renderId, { check });
+  return check;
 }

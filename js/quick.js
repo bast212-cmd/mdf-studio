@@ -48,17 +48,68 @@ async function ensureAIReady() {
   return true;
 }
 
-/** Appareil photo natif de l'iPad (camera) ou pellicule ; résout avec une liste de fichiers */
+/**
+ * Appareil photo natif de l'iPad (camera) ou pellicule ; résout avec une liste de fichiers.
+ * La pellicule est toujours ouverte en sélection multiple : sur iPad, la sélection simple affiche
+ * un écran d'aperçu blanc à valider avant de revenir à l'application.
+ */
 function pickImages({ camera, multiple = false }) {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
     if (camera) input.capture = 'environment';
-    input.multiple = multiple && !camera;
-    input.onchange = () => resolve([...input.files]);
+    else input.multiple = true;
+    input.onchange = () => { const files = [...input.files]; resolve(multiple ? files : files.slice(0, 1)); };
     input.click();
   });
+}
+
+/** Voile « Préparation de la photo… » pendant la conversion des images (photos lourdes de l'iPad) */
+async function preparing(task) {
+  const el = document.createElement('div');
+  el.className = 'preparing';
+  el.innerHTML = '<div><div class="spinner"></div><p>Préparation de la photo…</p></div>';
+  document.body.appendChild(el);
+  try { return await task(); } finally { el.remove(); }
+}
+
+const MAX_ITEMS = 3; // meubles par rendu (ensemble)
+
+const loadBitmap = async (id) => { const b = id && (await getMediaBlob(id)); return b ? createImageBitmap(b) : null; };
+const canvasJpeg = (c) => new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.92));
+
+/** Rendu converti en JPEG (format le mieux accepté par l'app Photos) */
+async function toJpeg(blob) {
+  if (!blob || blob.type === 'image/jpeg') return blob;
+  const bmp = await createImageBitmap(blob);
+  const c = document.createElement('canvas');
+  c.width = bmp.width; c.height = bmp.height;
+  c.getContext('2d').drawImage(bmp, 0, 0);
+  return canvasJpeg(c);
+}
+
+/** Avant / après côte à côte en une seule image, avec la mention du magasin et « visuel généré par IA » */
+async function beforeAfterBlob(beforeId, afterId) {
+  const [a, b] = await Promise.all([loadBitmap(beforeId), loadBitmap(afterId)]);
+  if (!a || !b) return null;
+  const h = Math.min(a.height, b.height, 1600);
+  const wa = Math.round((a.width * h) / a.height), wb = Math.round((b.width * h) / b.height);
+  const gap = Math.round(h * 0.015), band = Math.round(h * 0.075), pad = Math.round(band * 0.35);
+  const c = document.createElement('canvas');
+  c.width = wa + gap + wb; c.height = h + band;
+  const g = c.getContext('2d');
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(a, 0, 0, wa, h);
+  g.drawImage(b, wa + gap, 0, wb, h);
+  g.fillStyle = '#1d2740'; g.textBaseline = 'middle';
+  g.font = `600 ${Math.round(band * 0.38)}px Montserrat, sans-serif`;
+  g.fillText('AVANT', pad, h + band / 2);
+  g.fillText('APRÈS', wa + gap + pad, h + band / 2);
+  g.textAlign = 'right';
+  g.font = `400 ${Math.round(band * 0.3)}px Montserrat, sans-serif`;
+  g.fillText('Mobilier de France Brest-Morlaix · visuel généré par IA', c.width - pad, h + band / 2);
+  return canvasJpeg(c);
 }
 
 const sourceButtons = (prefix, { cameraLabel = 'Prendre une photo', libraryLabel = 'Pellicule', big = false } = {}) => `
@@ -69,18 +120,19 @@ const sourceButtons = (prefix, { cameraLabel = 'Prendre une photo', libraryLabel
 
 export async function renderQuick(view, { id }) {
   if (!id || id === 'nouveau') {
-    const room = await api.createRoom({ name: 'Rendu rapide', mode: 'quick', quick: { action: 'replace', furniture: { photos: [] } } });
+    const room = await api.createRoom({ name: 'Rendu rapide', mode: 'quick', quick: { items: [] } });
     location.replace(`#/rapide/${room.id}`);
     return;
   }
   let room;
   try { room = await api.room(id); } catch { view.innerHTML = '<div class="empty">Projet introuvable. <a href="#/">Retour à mes projets</a></div>'; return; }
-  room.quick ??= { action: 'replace', furniture: { photos: [] } };
-  room.quick.furniture ??= { photos: [] };
+  room.quick ??= { items: [] };
   room.renders ??= [];
   const q = room.quick;
+  // un ou plusieurs meubles (ensemble) ; les anciens projets n'en avaient qu'un, dans q.furniture
+  q.items ??= q.furniture?.photos?.length ? [q.furniture] : [];
   // plus de zone tracée : l'IA choisit l'emplacement (on oublie celle des anciens projets)
-  delete q.zone; delete q.keep; delete q.action;
+  delete q.furniture; delete q.zone; delete q.keep; delete q.action;
   await store.loadCategories();
 
   // ---------- sauvegarde différée ----------
@@ -91,14 +143,14 @@ export async function renderQuick(view, { id }) {
   const flush = async () => { clearTimeout(saveTimer); await persist(); };
 
   const photo = () => room.photos?.[0] || null;
-  const hasFurniture = () => q.furniture.photos.length > 0;
+  const hasFurniture = () => q.items.length > 0;
   const ready = () => photo() && hasFurniture();
   const reachable = (s) => ({ room: true, furniture: Boolean(photo()), finish: Boolean(ready()), result: Boolean(current) })[s];
 
   let current = room.renders[0] || null;
   let loading = false;
   let error = null;
-  let furnTab = q.furniture.source || 'catalogue'; // 'catalogue' · 'library' · 'photo'
+  let furnTab = 'catalogue'; // 'catalogue' · 'library' (catalogue du magasin) · 'photo'
   const filter = { q: '', category: '' };
   // écran d'arrivée : le résultat s'il existe, sinon la première étape à faire
   let step = current || pending.has(room.id) ? 'result' : !photo() ? 'room' : !hasFurniture() ? 'furniture' : 'finish';
@@ -185,7 +237,7 @@ export async function renderQuick(view, { id }) {
     const add = async (camera) => {
       const files = await pickImages({ camera });
       if (!files?.length) return;
-      try { const [ph] = await storeImages([files[0]]); await setRoom(ph); } catch (e) { toast(e.message, 'err'); }
+      try { const [ph] = await preparing(() => storeImages([files[0]])); setRoom(ph); } catch (e) { toast(e.message, 'err'); }
     };
     $('[data-room-cam]', body).onclick = () => add(true);
     $('[data-room-imp]', body).onclick = () => add(false);
@@ -206,31 +258,69 @@ export async function renderQuick(view, { id }) {
   }
 
   // =================================================================
-  // 2. Le meuble : catalogue, bibliothèque ou photo
+  // 2. Le meuble : catalogue MDF, catalogue du magasin ou photo ; jusqu'à 3 meubles (ensemble)
   // =================================================================
-  // Copie des photos et cotes d'un meuble de la bibliothèque (les images sont partagées, pas dupliquées)
-  const useFurniture = (f, source) => {
+  // Copie des photos et cotes d'un modèle (les images sont partagées avec le catalogue, pas dupliquées)
+  const itemFrom = (f, source) => {
     const ph = [...(f.photos || [])];
     if (f.cover) ph.unshift(...ph.splice(f.cover, 1));
-    q.furniture = {
+    return {
       photos: ph.slice(0, 3).map(({ media, w, h }) => ({ media, w, h })),
       name: f.name || '', type: f.type || '', length: f.length, width: f.width, height: f.height, notes: f.notes || '',
       libraryId: f.id, source,
     };
+  };
+  const isSelected = (id) => q.items.some((x) => x.libraryId === id);
+  const tooMany = () => toast(`${MAX_ITEMS} meubles au maximum par rendu : retirez-en un d'abord.`, 'err');
+
+  // Un toucher ajoute le modèle à la sélection, un second le retire
+  const toggleFurniture = (f, source) => {
+    const i = q.items.findIndex((x) => x.libraryId === f.id);
+    if (i >= 0) {
+      q.items.splice(i, 1);
+      toast(`${f.name} retiré de la sélection`);
+    } else if (q.items.length >= MAX_ITEMS) {
+      return tooMany();
+    } else {
+      q.items.push(itemFrom(f, source));
+      toast(q.items.length > 1 ? `${f.name} ajouté : ensemble de ${q.items.length} meubles` : `${f.name} sélectionné`, 'ok');
+    }
     save();
-    go('finish');
+    drawSelection();
   };
 
+  const selectionHTML = () => (q.items.length
+    ? `<div class="selbar">${q.items.map((it, i) => `
+        <div class="selitem"><img ${src(it.photos[0].media)} alt="">
+          <div><strong>${esc(it.name || 'Meuble photographié')}</strong>
+          <div class="muted small">${it.length || it.width || it.height ? furnitureDims(it) : `${it.photos.length} photo(s)`}</div></div>
+          <button class="selitem__rm" data-unsel="${i}" aria-label="Retirer ${esc(it.name || 'ce meuble')}">×</button></div>`).join('')}
+        <span class="muted small selcount">${q.items.length} / ${MAX_ITEMS}</span></div>`
+    : `<p class="muted small selhint">Touchez un modèle pour le choisir. Pour un ensemble (canapé, table basse, fauteuil…), choisissez-en jusqu'à ${MAX_ITEMS}.</p>`);
+
+  // Met à jour la sélection, les cartes cochées, les étapes et le bouton Suivant, sans redessiner la liste
+  function drawSelection() {
+    const sel = $('#sel', body);
+    if (!sel) return;
+    sel.innerHTML = selectionHTML();
+    $$('[data-unsel]', sel).forEach((b) => (b.onclick = () => {
+      q.items.splice(Number(b.dataset.unsel), 1);
+      save();
+      if (furnTab === 'photo') drawFurniture(); else drawSelection();
+    }));
+    $$('[data-fid]', body).forEach((c) => c.classList.toggle('selected', isSelected(c.dataset.fid)));
+    $$('[data-cid]', body).forEach((c) => c.classList.toggle('selected', isSelected(c.dataset.cid)));
+    drawSteps();
+    drawNav();
+  }
+
   async function drawFurniture() {
-    const f = q.furniture;
     const all = await api.furniture();
     if (!view.isConnected || step !== 'furniture') return;
-    const tabs = [['catalogue', 'Catalogue MDF'], ['library', `Ma bibliothèque <span class="muted">(${all.length})</span>`], ['photo', 'Photo du meuble']];
+    const tabs = [['catalogue', 'Catalogue MDF'], ['library', `Catalogue du magasin <span class="muted">(${all.length})</span>`], ['photo', 'Photo du meuble']];
     body.innerHTML = `
-      <div class="wiz-head"><div><h2>Le meuble</h2><p class="muted">Choisissez un modèle, ou photographiez le meuble.</p></div></div>
-      ${hasFurniture() ? `<div class="selbar"><img ${src(f.photos[0].media)} alt=""><div><strong>${esc(f.name || 'Meuble photographié')}</strong>
-        <div class="muted small">${f.length || f.width || f.height ? furnitureDims(f) : `${f.photos.length} photo(s)`}</div></div>
-        <span class="tag-ok">Sélectionné</span></div>` : ''}
+      <div class="wiz-head"><div><h2>Le meuble</h2><p class="muted">Choisissez un ou plusieurs modèles du catalogue, ou photographiez le meuble.</p></div></div>
+      <div id="sel"></div>
       <div class="seg tabs">${tabs.map(([k, l]) => `<button data-tab="${k}" class="${furnTab === k ? 'sel' : ''}">${l}</button>`).join('')}</div>
       <div id="tab"></div>`;
     $$('[data-tab]', body).forEach((b) => (b.onclick = () => { furnTab = b.dataset.tab; drawFurniture(); }));
@@ -238,6 +328,7 @@ export async function renderQuick(view, { id }) {
     if (furnTab === 'library') drawLibraryTab(tab, all);
     else if (furnTab === 'catalogue') drawCatalogueTab(tab, all);
     else drawPhotoTab(tab);
+    drawSelection();
   }
 
   // Filtres : pièce, puis type de meuble de cette pièce (seuls ceux présents dans la liste sont proposés)
@@ -270,7 +361,7 @@ export async function renderQuick(view, { id }) {
 
   function drawLibraryTab(tab, all) {
     if (!all.length) {
-      tab.innerHTML = `<div class="empty">Bibliothèque vide. Choisissez un modèle dans le <button class="linklike" data-goto="catalogue">catalogue Mobilier de France</button>, ou <button class="linklike" data-goto="photo">photographiez le meuble</button>.</div>`;
+      tab.innerHTML = `<div class="empty">Le catalogue du magasin est vide. Choisissez un modèle dans le <button class="linklike" data-goto="catalogue">catalogue Mobilier de France</button>, ou <button class="linklike" data-goto="photo">photographiez le meuble</button>.</div>`;
       $$('[data-goto]', tab).forEach((b) => (b.onclick = () => { furnTab = b.dataset.goto; drawFurniture(); }));
       return;
     }
@@ -279,7 +370,7 @@ export async function renderQuick(view, { id }) {
     const redraw = () => {
       const list = all.filter(matches);
       grid.innerHTML = list.map((f) => furnitureCard(f)).join('') || '<div class="empty" style="grid-column:1/-1">Aucun meuble ne correspond.</div>';
-      if (q.furniture.libraryId) $(`[data-fid="${CSS.escape(q.furniture.libraryId)}"]`, grid)?.classList.add('selected');
+      $$('[data-fid]', grid).forEach((c) => c.classList.toggle('selected', isSelected(c.dataset.fid)));
     };
     redraw();
     bindFilters(tab, all, redraw);
@@ -287,18 +378,18 @@ export async function renderQuick(view, { id }) {
       const c = e.target.closest('[data-fid]');
       const f = c && all.find((x) => x.id === c.dataset.fid);
       if (!f) return;
-      if (!f.photos?.length) return toast('Ce meuble n\'a pas de photo : ajoutez-en une dans la bibliothèque.', 'err');
-      useFurniture(f, 'library');
+      if (!f.photos?.length) return toast('Ce meuble n\'a pas de photo : ajoutez-en une dans le catalogue du magasin.', 'err');
+      toggleFurniture(f, 'library');
     });
   }
 
   function drawCatalogueTab(tab, all) {
     const have = new Map(all.map((f) => [f.id, f]));
     tab.innerHTML = `${filtersHTML(CATALOGUE_MDF)}
-      <p class="muted small">Modèles relevés sur mobilierdefrance.com. Au premier choix, la photo est téléchargée et le modèle est ajouté à votre bibliothèque.</p>
+      <p class="muted small">Modèles relevés sur mobilierdefrance.com. Au premier choix, la photo est téléchargée et le modèle est ajouté au catalogue du magasin.</p>
       <div class="catpick" id="cgrid"></div>`;
     const grid = $('#cgrid', tab);
-    // vignettes absentes de la bibliothèque : chargées par le relais quand elles apparaissent à l'écran
+    // vignettes absentes du catalogue du magasin : chargées par le relais quand elles apparaissent à l'écran
     const cfgP = api.settings().then((s) => providerConfig(s, 'gemini'));
     const io = new IntersectionObserver((entries) => entries.forEach(async (en) => {
       if (!en.isIntersecting) return;
@@ -314,7 +405,7 @@ export async function renderQuick(view, { id }) {
         const f = have.get(it.id);
         const cover = f?.photos?.[f.cover || 0]?.media;
         const url = !cover && thumbUrl(it);
-        return `<button class="catpick__item ${q.furniture.libraryId === it.id ? 'selected' : ''}" data-cid="${esc(it.id)}">
+        return `<button class="catpick__item ${isSelected(it.id) ? 'selected' : ''}" data-cid="${esc(it.id)}">
           <span class="catpick__img" ${url ? `data-thumb="${esc(url)}"` : ''}>${cover ? `<img ${src(cover)} alt="">` : '<span class="spinner spinner--sm"></span>'}</span>
           <span class="catpick__body"><strong>${esc(it.name)}</strong><span class="muted small">${esc(it.type)} · ${furnitureDims(it)}</span></span>
         </button>`;
@@ -326,47 +417,58 @@ export async function renderQuick(view, { id }) {
     grid.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-cid]');
       const it = b && CATALOGUE_MDF.find((x) => x.id === b.dataset.cid);
-      if (!it) return;
-      busy(b, true, 'Téléchargement…');
-      try { useFurniture(await catalogueFurniture(it), 'catalogue'); } catch (err) { toast(err.message, 'err'); busy(b, false); }
+      if (!it || b.disabled) return;
+      if (isSelected(it.id)) return toggleFurniture(it, 'catalogue');
+      if (q.items.length >= MAX_ITEMS) return tooMany();
+      // premier choix d'un modèle : sa photo est téléchargée (la vignette reste affichée)
+      const title = $('.catpick__body strong', b);
+      b.disabled = true;
+      title.textContent = 'Téléchargement…';
+      try { toggleFurniture(await catalogueFurniture(it), 'catalogue'); } catch (err) { toast(err.message, 'err'); }
+      title.textContent = it.name;
+      b.disabled = false;
     });
   }
 
+  // Photo : chaque import crée un meuble de la sélection ; la fiche porte sur le dernier meuble photographié
   function drawPhotoTab(tab) {
-    const f = q.furniture;
-    const own = f.source === 'photo' ? f.photos : [];
+    const cur = [...q.items].reverse().find((x) => x.source === 'photo') || null;
     tab.innerHTML = `
-      <p class="muted">Le meuble entier, net, de face ou de trois-quarts. Une 2e photo sous un autre angle peut aider.</p>
-      ${own.length ? `<div class="qthumbs">${own.map((x, i) => `<div class="thumb"><img ${src(x.media)} alt=""><div class="thumb__actions"><button title="Retirer" data-frm="${i}">✕</button></div></div>`).join('')}</div>` : ''}
-      ${sourceButtons('f', { cameraLabel: own.length ? 'Autre photo' : 'Prendre une photo' })}
-      <details class="qmore" ${own.length && (f.name || f.length || f.width || f.height || f.notes) ? 'open' : ''}>
-        <summary>Nom et dimensions (facultatif)</summary>
-        <div class="field" style="margin-top:12px"><label>Nom</label><input data-f="name" value="${esc(own.length ? f.name || '' : '')}" placeholder="Ex. Canapé 3 places Milano"></div>
+      <p class="muted">Le meuble entier, net, de face ou de trois-quarts. Depuis la pellicule, vous pouvez choisir 2 ou 3 photos du même meuble.</p>
+      ${sourceButtons('f')}
+      ${cur ? `<div class="panel photoitem">
+        <h3>Meuble photographié</h3>
+        <div class="qthumbs">${cur.photos.map((x, i) => `<div class="thumb"><img ${src(x.media)} alt=""><div class="thumb__actions"><button title="Retirer" data-frm="${i}">✕</button></div></div>`).join('')}</div>
+        <div class="field"><label>Nom (facultatif)</label><input data-f="name" value="${esc(cur.name || '')}" placeholder="Ex. Canapé 3 places TINO"></div>
         <div class="grid-3">
-          <div class="field"><label>Long.</label><div class="unit" data-unit="cm"><input data-f="length" type="number" min="1" inputmode="numeric" value="${own.length ? f.length ?? '' : ''}"></div></div>
-          <div class="field"><label>Prof.</label><div class="unit" data-unit="cm"><input data-f="width" type="number" min="1" inputmode="numeric" value="${own.length ? f.width ?? '' : ''}"></div></div>
-          <div class="field"><label>Haut.</label><div class="unit" data-unit="cm"><input data-f="height" type="number" min="1" inputmode="numeric" value="${own.length ? f.height ?? '' : ''}"></div></div>
+          <div class="field"><label>Long.</label><div class="unit" data-unit="cm"><input data-f="length" type="number" min="1" inputmode="numeric" value="${cur.length ?? ''}"></div></div>
+          <div class="field"><label>Prof.</label><div class="unit" data-unit="cm"><input data-f="width" type="number" min="1" inputmode="numeric" value="${cur.width ?? ''}"></div></div>
+          <div class="field"><label>Haut.</label><div class="unit" data-unit="cm"><input data-f="height" type="number" min="1" inputmode="numeric" value="${cur.height ?? ''}"></div></div>
         </div>
-        <div class="field" style="margin:0"><label>Précisions</label><input data-f="notes" value="${esc(own.length ? f.notes || '' : '')}" placeholder="Ex. pieds noirs, coussins assortis"></div>
-      </details>`;
+        <div class="field" style="margin:0"><label>Précisions</label><input data-f="notes" value="${esc(cur.notes || '')}" placeholder="Ex. pieds noirs, coussins assortis"></div>
+      </div>` : ''}`;
     const add = async (camera) => {
+      if (q.items.length >= MAX_ITEMS) return tooMany();
       const files = await pickImages({ camera, multiple: true });
       if (!files?.length) return;
       try {
-        const added = await storeImages(files.slice(0, 3));
-        // une photo remplace un meuble choisi dans la bibliothèque ou le catalogue
-        if (q.furniture.source !== 'photo') q.furniture = { photos: [], source: 'photo' };
-        q.furniture.photos = [...q.furniture.photos, ...added].slice(-3);
-        save(); drawFurniture();
+        const photos = await preparing(() => storeImages(files.slice(0, 3)));
+        q.items.push({ photos, name: '', source: 'photo' });
+        save();
+        drawFurniture(); // fiche du meuble photographié, sélection et bouton Suivant à jour
       } catch (e) { toast(e.message, 'err'); }
     };
     $('[data-f-cam]', tab).onclick = () => add(true);
     $('[data-f-imp]', tab).onclick = () => add(false);
-    $$('[data-frm]', tab).forEach((b) => (b.onclick = () => { q.furniture.photos.splice(Number(b.dataset.frm), 1); save(); drawFurniture(); }));
+    if (!cur) return;
+    $$('[data-frm]', tab).forEach((b) => (b.onclick = () => {
+      cur.photos.splice(Number(b.dataset.frm), 1);
+      if (!cur.photos.length) q.items.splice(q.items.indexOf(cur), 1);
+      save(); drawFurniture();
+    }));
     $$('[data-f]', tab).forEach((inp) => inp.addEventListener('input', () => {
-      if (q.furniture.source !== 'photo') return; // champs liés aux photos prises ici
       const k = inp.dataset.f;
-      q.furniture[k] = inp.type === 'number' ? num(inp.value) : inp.value;
+      cur[k] = inp.type === 'number' ? num(inp.value) : inp.value;
       save();
     }));
   }
@@ -376,19 +478,20 @@ export async function renderQuick(view, { id }) {
   // =================================================================
   function drawFinish() {
     const p = photo();
-    const f = q.furniture;
+    const main = q.items[0];
+    const many = q.items.length > 1;
     body.innerHTML = `
       ${errorHTML()}
       <div class="wiz-head"><div><h2>Finition</h2><p class="muted">Facultatif : changez la matière ou donnez une consigne, puis lancez le rendu.</p></div></div>
       <div class="recap">
         <div><img ${src(p.media)} alt=""><span class="muted small">La pièce</span></div>
-        <div><img ${src(f.photos[0].media)} alt=""><span class="muted small">${esc(f.name || 'Meuble photographié')}</span></div>
+        ${q.items.map((it) => `<div><img ${src(it.photos[0].media)} alt=""><span class="muted small">${esc(it.name || 'Meuble photographié')}</span></div>`).join('')}
       </div>
       <div class="grid-2 finish">
         <section class="panel">
-          <h3>Matière</h3>
+          <h3>Matière${many ? ` <span class="muted small" style="text-transform:none;letter-spacing:0;font-weight:400">· ${esc(main.name || 'premier meuble')}</span>` : ''}</h3>
           ${q.texture ? `<div class="texrow"><img ${src(q.texture.media)} alt=""><button class="btn btn--light btn--sm" data-trm>Retirer</button></div>`
-            : '<p class="small">Photo d\'un tissu, d\'un cuir ou d\'un bois : le meuble sera rendu dans cette matière.</p>'}
+            : `<p class="small">Photo d'un tissu, d'un cuir ou d'un bois : ${many ? `« ${esc(main.name || 'le premier meuble')} » sera rendu` : 'le meuble sera rendu'} dans cette matière.</p>`}
           ${sourceButtons('t', { cameraLabel: 'Photographier' })}
           <div class="field" style="margin:0"><label>Ou en mots</label><input id="tnotes" value="${esc(q.textureNotes || '')}" placeholder="Ex. velours vert sauge"></div>
         </section>
@@ -400,7 +503,7 @@ export async function renderQuick(view, { id }) {
     const addTex = async (camera) => {
       const files = await pickImages({ camera });
       if (!files?.length) return;
-      try { [q.texture] = await storeImages([files[0]]); save(); drawFinish(); } catch (e) { toast(e.message, 'err'); }
+      try { [q.texture] = await preparing(() => storeImages([files[0]])); save(); drawFinish(); } catch (e) { toast(e.message, 'err'); }
     };
     $('[data-t-cam]', body).onclick = () => addTex(true);
     $('[data-t-imp]', body).onclick = () => addTex(false);
@@ -447,6 +550,7 @@ export async function renderQuick(view, { id }) {
       if (!room.renders.some((r) => r.id === res.render.id)) room.renders.unshift(res.render);
       current = room.renders.find((r) => r.id === res.render.id);
       toast('Rendu prêt !', 'ok');
+      startCheck(current); // garde-fou : contrôle du rendu en tâche de fond
     } else {
       error = res.error;
       if (!current) step = 'finish'; // pas encore de rendu : retour à la finition, avec le message
@@ -466,14 +570,44 @@ export async function renderQuick(view, { id }) {
 
   const errorHTML = () => (error ? `<div class="alert"><strong>Le rendu a échoué.</strong><br>${esc(error)}${/Réglages|Clé API|code d'accès/i.test(error) ? ' <a href="#/reglages">Ouvrir les réglages</a>' : ''}</div>` : '');
 
+  // ---------- Garde-fou : contrôle du rendu par l'IA (meubles présents et fidèles au catalogue) ----------
+  const checking = new Set(); // rendus en cours de contrôle
+  function startCheck(r) {
+    if (!r || r.check || checking.has(r.id)) return;
+    checking.add(r.id);
+    api.checkQuick(room.id, r.id)
+      .then((c) => { if (c) r.check = c; })
+      .catch((e) => { r.check = { verdict: 'error', summary: e.message }; })
+      .finally(() => {
+        checking.delete(r.id);
+        if (view.isConnected && step === 'result' && !loading && current?.id === r.id) drawResult();
+      });
+  }
+
+  function checkHTML(r) {
+    if (checking.has(r.id)) return '<div class="check check--run"><span class="spinner spinner--sm"></span> Contrôle du rendu : les meubles sont-ils fidèles au catalogue ?</div>';
+    const c = r.check;
+    if (!c) return '<div class="check"><button class="btn btn--light btn--sm" data-check>Contrôler ce rendu</button> <span class="muted small">Vérifie que les meubles sont fidèles aux photos du catalogue.</span></div>';
+    if (c.verdict === 'error') return `<div class="check check--warn">Contrôle impossible : ${esc(c.summary)} <button class="btn btn--light btn--sm" data-check>Réessayer</button></div>`;
+    if (c.verdict === 'ok') return `<div class="check check--ok">✓ Contrôle : ${esc(c.summary || 'meubles fidèles au catalogue.')}</div>`;
+    const issues = c.items.filter((x) => !x.present || !x.faithful)
+      .map((x) => `<li><strong>${esc(x.name)}</strong> : ${esc(x.issue || (x.present ? 'quelques différences avec le modèle du catalogue' : "peu visible sur l'image"))}</li>`).join('')
+      + (c.otherChanges ? `<li>${esc(c.otherChanges)}</li>` : '');
+    return `<div class="check check--warn"><strong>Rendu légèrement différent du catalogue.</strong> ${esc(c.summary)}
+      ${issues ? `<ul>${issues}</ul>` : ''}
+      <button class="btn btn--sm" data-fix>↻ Affiner le rendu</button></div>`;
+  }
+
   function drawResult() {
     if (!current) return go('finish');
     const p = photo();
     body.innerHTML = `
       ${errorHTML()}
+      ${checkHTML(current)}
       <div class="btn-row result-actions">
         <button class="btn ${current.saved ? '' : 'btn--ghost'} btn--sm" data-save>${current.saved ? '★ Sauvegardé' : '☆ Sauvegarder'}</button>
-        <button class="btn btn--ghost btn--sm" data-dl>Enregistrer / partager l'image</button>
+        <button class="btn btn--ghost btn--sm" data-dl>Enregistrer dans Photos</button>
+        ${photo() ? '<button class="btn btn--ghost btn--sm" data-dlba>Avant / après dans Photos</button>' : ''}
         <button class="btn btn--light btn--sm" data-other>Essayer un autre meuble</button>
         <button class="btn btn--danger btn--sm" data-delr>Supprimer ce rendu</button>
         <span class="muted small result-hint">Glissez sur l'image pour comparer avant / après</span>
@@ -499,17 +633,26 @@ export async function renderQuick(view, { id }) {
 
     $$('[data-r]', body).forEach((b) => (b.onclick = () => { current = room.renders.find((r) => r.id === b.dataset.r); error = null; draw(); }));
     $('[data-other]', body).onclick = () => go('furniture');
+    $('[data-check]', body)?.addEventListener('click', () => { if (current.check?.verdict === 'error') delete current.check; startCheck(current); drawResult(); });
+    $('[data-fix]', body)?.addEventListener('click', () => generate(current.check?.correction || current.check?.summary || ''));
     $('[data-save]', body).onclick = async () => {
       Object.assign(current, await api.updateRender(room.id, current.id, { saved: !current.saved }));
       toast(current.saved ? 'Rendu sauvegardé' : 'Rendu retiré des sauvegardes', 'ok');
       draw();
     };
-    $('[data-dl]', body).onclick = async () => {
-      const blob = await getMediaBlob(current.media);
-      if (!blob) return toast('Image introuvable sur cet appareil', 'err');
-      const ext = blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
-      await shareOrDownload(blob, `rendu-${room.name.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '') || 'rapide'}.${ext}`, room.name);
+    // Enregistrement dans l'app Photos : sur iPad, la feuille de partage propose « Enregistrer l'image »
+    const base = `rendu-${room.name.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '') || 'rapide'}`;
+    const toPhotos = async (btn, makeBlob, filename) => {
+      busy(btn, true, 'Préparation…');
+      try {
+        const blob = await makeBlob();
+        if (!blob) return toast('Image introuvable sur cet appareil', 'err');
+        if (navigator.canShare) toast("Choisissez « Enregistrer l'image » pour l'ajouter à Photos", 'ok');
+        await shareOrDownload(blob, filename, room.name, 'share');
+      } catch (e) { toast(e.message, 'err'); } finally { busy(btn, false); }
     };
+    $('[data-dl]', body).onclick = (e) => toPhotos(e.currentTarget, async () => toJpeg(await getMediaBlob(current.media)), `${base}.jpg`);
+    $('[data-dlba]', body).onclick = (e) => toPhotos(e.currentTarget, () => beforeAfterBlob(photo()?.media, current.media), `${base}-avant-apres.jpg`);
     $('[data-delr]', body).onclick = async () => {
       if (!(await confirmDialog('Supprimer ce rendu ?', 'Supprimer'))) return;
       await api.deleteRender(room.id, current.id);

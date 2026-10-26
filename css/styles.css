@@ -585,3 +585,26 @@ body { background: var(--page); }
 .result-actions { margin-bottom: 12px; align-items: center; }
 .result-hint { margin-left: auto; }
 @media (max-width: 720px) { .result-hint { display: none; } }
+
+/* Rendu rapide : sélection de 1 à 3 meubles (ensemble) */
+.selbar { flex-wrap: wrap; gap: 10px; padding: 10px; }
+.selitem { display: flex; align-items: center; gap: 10px; background: var(--sand); padding: 6px 6px 6px 6px; min-width: 0; flex: 1 1 220px; max-width: 360px; }
+.selitem img { width: 72px; height: 54px; object-fit: cover; flex: none; }
+.selitem > div { flex: 1; min-width: 0; }
+.selitem strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.selitem__rm { flex: none; width: 34px; height: 34px; border: 0; background: #fff; color: var(--blue); font-size: 20px; cursor: pointer; }
+.selcount { margin-left: auto; align-self: center; }
+.selhint { margin: 0 0 14px; }
+.photoitem { margin-top: 16px; }
+
+
+/* Voile pendant la préparation d'une photo importée */
+.preparing { position: fixed; inset: 0; z-index: 9000; background: rgba(248, 245, 240, .85); display: grid; place-items: center; text-align: center; color: var(--blue); font-weight: 500; }
+
+/* Garde-fou : résultat du contrôle du rendu par l'IA */
+.check { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px; margin-bottom: 12px; background: #fff; border: 1px solid var(--line); font-size: 14px; }
+.check--run { color: var(--gray); }
+.check--ok { border-left: 3px solid var(--ok); color: var(--ok); }
+.check--warn { display: block; border-left: 3px solid var(--cognac); background: #fff; color: var(--ink); }
+.check--warn ul { margin: 6px 0 10px; padding-left: 20px; }
+.check--warn .btn { margin-top: 2px; }

@@ -36,11 +36,11 @@ export async function renderLibrary(app, params = {}) {
 
   app.innerHTML = `
     <div class="section-head">
-      <div><span class="eyebrow">Bibliothèque</span><h1>Mes meubles</h1></div>
+      <div><span class="eyebrow">Catalogue du magasin</span><h1>Nos meubles</h1></div>
       <div class="btn-row">
         <button class="btn btn--light" data-cats>Gérer les pièces et types</button>
         <button class="btn btn--light" data-catalog title="Ajouter des modèles du catalogue Mobilier de France">Catalogue MDF</button>
-        <button class="btn btn--light" data-import title="Importer une bibliothèque reçue (fichier .zip)">⤓ Importer</button>
+        <button class="btn btn--light" data-import title="Importer un catalogue reçu (fichier .zip)">⤓ Importer</button>
         <button class="btn btn--light" data-export title="Créer un fichier à partager">⤴ Partager</button>
         <button class="btn btn--ghost" data-photo>📷 Photographier un meuble</button>
         <button class="btn" data-new>+ Nouveau meuble</button>
@@ -71,11 +71,11 @@ export async function renderLibrary(app, params = {}) {
     const q = state.q.toLowerCase();
     const list = all.filter((f) => (!state.category || f.category === state.category) && (!state.type || f.type === state.type)
       && (!q || [f.name, f.reference, f.type].join(' ').toLowerCase().includes(q)));
-    $('#crumb', app).textContent = ['Bibliothèque', store.catName(state.category), state.type].filter(Boolean).join(' › ');
+    $('#crumb', app).textContent = ['Catalogue', store.catName(state.category), state.type].filter(Boolean).join(' › ');
     $('#grid', app).innerHTML = `
       <button class="card card--add" data-new><div><span>+</span>Ajouter un meuble</div></button>
       ${list.map((f) => furnitureCard(f)).join('')}
-      ${!all.length ? `<div class="empty" style="grid-column:1/-1">Bibliothèque vide. <button class="linklike" data-catalog>Ajoutez des modèles du catalogue Mobilier de France</button>, ajoutez vos propres meubles, ou <button class="linklike" data-import>importez un fichier de bibliothèque</button> reçu d'un autre appareil.</div>` : ''}`;
+      ${!all.length ? `<div class="empty" style="grid-column:1/-1">Le catalogue du magasin est vide. <button class="linklike" data-catalog>Ajoutez des modèles du catalogue Mobilier de France</button>, ajoutez vos propres meubles, ou <button class="linklike" data-import>importez un fichier de catalogue</button> reçu d'un autre appareil.</div>` : ''}`;
   };
 
   const refresh = async () => { all = await api.furniture(); drawTree(); drawGrid(); };
@@ -166,7 +166,7 @@ export async function openFurnitureForm({ furniture, defaults = {}, files = [] }
       footer: `
         ${furniture ? '<button class="btn btn--danger" data-del style="margin-right:auto">Supprimer</button>' : ''}
         <button class="btn btn--light" data-close>Annuler</button>
-        <button class="btn" data-save>${furniture ? 'Enregistrer' : 'Ajouter à la bibliothèque'}</button>`,
+        <button class="btn" data-save>${furniture ? 'Enregistrer' : 'Ajouter au catalogue'}</button>`,
     });
 
     const el = m.el;
@@ -229,7 +229,7 @@ export async function openFurnitureForm({ furniture, defaults = {}, files = [] }
       } catch (err) { toast(err.message, 'err'); busy(e.target, false); }
     };
     $('[data-del]', el)?.addEventListener('click', async () => {
-      if (!(await confirmDialog(`Supprimer « ${furniture.name} » de la bibliothèque ?`, 'Supprimer'))) return;
+      if (!(await confirmDialog(`Supprimer « ${furniture.name} » du catalogue du magasin ?`, 'Supprimer'))) return;
       await api.deleteFurniture(furniture.id);
       result = 'deleted';
       toast('Meuble supprimé');
@@ -249,7 +249,7 @@ export async function pickFurniture({ category = '' } = {}) {
   return new Promise((resolve) => {
     let result = null;
     const m = modal({
-      title: 'Choisir dans la bibliothèque',
+      title: 'Choisir dans le catalogue du magasin',
       wide: true,
       onClose: () => resolve(result),
       content: `

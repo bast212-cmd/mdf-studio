@@ -436,7 +436,7 @@ function step3({ room, body, save, flush, go }) {
         <div class="choice choice--3">
           <button data-shoot><span class="ico">📷</span><strong>Photo en direct</strong></button>
           <button data-roll><span class="ico">🖼️</span><strong>Pellicule</strong></button>
-          <button data-lib><span class="ico">📚</span><strong>Bibliothèque</strong></button>
+          <button data-lib><span class="ico">📚</span><strong>Catalogue</strong></button>
         </div>
         ${news.length ? `<ul class="item-list" style="margin-top:12px">${news.map((i) => `<li data-sel="${i.id}" class="${i.id === editor.selected ? 'sel' : ''}"><span class="dot" style="background:${i.keepOriginal ? '#0a3d7c' : i.color || '#0a3d7c'}"></span>${esc(i.name)}<span class="meta">${i.replacesId ? 'remplace' : 'libre'}</span></li>`).join('')}</ul>` : '<p class="muted small" style="margin-top:12px">Aucun nouveau meuble. Ajoutez-en un, puis placez-le sur le plan.</p>'}
       </div>
@@ -445,7 +445,7 @@ function step3({ room, body, save, flush, go }) {
         <h3>${esc(selEx.name)}</h3>
         ${replacer ? `<p class="small">Remplacé par <strong>${esc(replacer.name)}</strong>.</p><button class="btn btn--light btn--sm" data-sel="${replacer.id}">Voir le nouveau meuble</button>`
           : `<p class="small">Meuble présent dans la pièce. Remplacez-le par un meuble :</p>
-        <div class="choice choice--3"><button data-repshoot><span class="ico">📷</span><strong>Photo en direct</strong></button><button data-reproll><span class="ico">🖼️</span><strong>Pellicule</strong></button><button data-replib><span class="ico">📚</span><strong>Bibliothèque</strong></button></div>`}
+        <div class="choice choice--3"><button data-repshoot><span class="ico">📷</span><strong>Photo en direct</strong></button><button data-reproll><span class="ico">🖼️</span><strong>Pellicule</strong></button><button data-replib><span class="ico">📚</span><strong>Catalogue</strong></button></div>`}
       </div>` : ''}
       <div class="panel panel--sand">
         <h3>Instructions pour l'IA</h3>
@@ -536,7 +536,7 @@ function step3({ room, body, save, flush, go }) {
       <div class="panel" id="props">
         <div style="display:flex;gap:14px;align-items:center;margin-bottom:16px">
           <div style="width:84px;aspect-ratio:4/3;background:var(--sand);flex:none">${cover ? `<img ${src(cover)} style="width:100%;height:100%;object-fit:cover">` : ''}</div>
-          <div><strong>${esc(sel.name)}</strong><div class="muted small">${f ? furnitureDims(f) : 'Meuble supprimé de la bibliothèque'}</div>
+          <div><strong>${esc(sel.name)}</strong><div class="muted small">${f ? furnitureDims(f) : 'Meuble supprimé du catalogue'}</div>
             <div class="btn-row" style="gap:6px;margin-top:6px">${f ? '<button class="btn btn--light btn--sm" data-edit>Fiche</button>' : ''}<button class="btn btn--light btn--sm" data-swap>Changer</button></div></div>
         </div>
         <div class="field"><label>Placement</label>

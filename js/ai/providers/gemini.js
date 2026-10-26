@@ -44,6 +44,8 @@ export const gemini = {
   fields: [
     { key: 'accessCode', label: "Code d'accès du relais", type: 'secret',
       hint: "Fourni par la personne qui gère l'application. À saisir une seule fois sur chaque appareil." },
+    { key: 'deviceName', label: 'Nom de cet appareil', type: 'text', placeholder: 'Ex. iPad magasin Brest',
+      hint: 'Apparaît dans le suivi des rendus, pour savoir qui a fait quoi.' },
     { key: 'relayUrl', label: 'Adresse du relais', type: 'text', default: RELAY_URL, placeholder: 'https://mdf-studio-relais.….workers.dev',
       hint: 'Laissez la valeur proposée.' },
     { key: 'apiKey', label: 'Clé API Google AI Studio (sans relais)', type: 'secret', placeholder: 'AIza…',
@@ -69,7 +71,7 @@ export const gemini = {
 
   /** Vérifie la clé ; renvoie la liste des modèles d'image disponibles */
   async test(cfg) {
-    const res = await call('GET', `/models?pageSize=1000`, null, cfg);
+    const res = await call('GET', `/models?pageSize=1000`, null, cfg, { kind: 'test' });
     const models = (res.models || []).map((m) => String(m.name || '').replace(/^models\//, ''));
     return { ok: true, imageModels: models.filter((m) => /image/i.test(m)), textModels: models.filter((m) => /^gemini/.test(m) && !/image|tts|embedding|audio|live/i.test(m)) };
   },
@@ -78,7 +80,7 @@ export const gemini = {
    * @param {{prompt:string, images:{mimeType:string,data:string}[], aspectRatio?:string}} req
    * @returns {Promise<{images:{mimeType:string,data:string}[], text:string}>}
    */
-  async generateImage({ prompt, images, aspectRatio }, cfg) {
+  async generateImage({ prompt, images, aspectRatio, kind = 'rendu' }, cfg) {
     const model = cfg.imageModel || 'gemini-3.1-flash-image';
     const mode = String(cfg.apiMode || 'auto').toLowerCase();
     const errors = [];
@@ -92,7 +94,7 @@ export const gemini = {
             ...images.map((im) => ({ type: 'image', mime_type: im.mimeType, data: im.data })),
           ],
         };
-        const out = extract(await call('POST', `/interactions`, body, cfg));
+        const out = extract(await call('POST', `/interactions`, body, cfg, { kind, model }));
         if (out.images.length) return out;
         errors.push('interactions : aucune image renvoyée' + (out.text ? ` (« ${out.text.slice(0, 200)} »)` : ''));
       } catch (e) {
@@ -110,7 +112,7 @@ export const gemini = {
           contents: [{ role: 'user', parts: [{ text: prompt }, ...images.map((im) => ({ inlineData: { mimeType: im.mimeType, data: im.data } }))] }],
           generationConfig: { responseModalities: ['TEXT', 'IMAGE'], ...(Object.keys(imageConfig).length ? { imageConfig } : {}) },
         };
-        const out = extract(await call('POST', `/models/${encodeURIComponent(model)}:generateContent`, body, cfg));
+        const out = extract(await call('POST', `/models/${encodeURIComponent(model)}:generateContent`, body, cfg, { kind, model }));
         if (out.images.length) return out;
         errors.push('generateContent : aucune image renvoyée' + (out.text ? ` (« ${out.text.slice(0, 200)} »)` : ''));
       } catch (e) {
@@ -122,7 +124,7 @@ export const gemini = {
   },
 
   /** Demande au modèle texte une réponse JSON (analyse des photos de la pièce) */
-  async analyzeJSON(prompt, images, cfg) {
+  async analyzeJSON(prompt, images, cfg, kind = 'analyse') {
     const model = cfg.textModel || 'gemini-3.8-flash';
     // Les modèles Gemini 3 sont réglés pour fonctionner à la température par défaut :
     // on ne la force basse que pour les anciens modèles 2.x.
@@ -132,20 +134,26 @@ export const gemini = {
       contents: [{ role: 'user', parts: [{ text: prompt }, ...images.map((im) => ({ inlineData: { mimeType: im.mimeType, data: im.data } }))] }],
       generationConfig,
     };
-    const out = extract(await call('POST', `/models/${encodeURIComponent(model)}:generateContent`, body, cfg));
+    const out = extract(await call('POST', `/models/${encodeURIComponent(model)}:generateContent`, body, cfg, { kind, model }));
     const m = out.text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     if (!m) throw new Error('Réponse non exploitable du modèle');
     return JSON.parse(m[0]);
   },
 };
 
-async function call(method, path, body, cfg) {
+async function call(method, path, body, cfg, meta = {}) {
   if (!navigator.onLine) throw Object.assign(new Error("Pas de connexion internet : la génération d'images nécessite internet."), { fatal: true });
   // Relais : même chemin que chez Google, le relais ajoute la clé
   const relay = relayOf(cfg);
   const url = `${relay || GOOGLE}/v1beta${path}`;
   const auth = relay
-    ? (cfg.accessCode?.trim() ? { 'x-access-code': cfg.accessCode.trim() } : {})
+    ? {
+      ...(cfg.accessCode?.trim() ? { 'x-access-code': cfg.accessCode.trim() } : {}),
+      // pour le suivi des rendus sur le relais (type d'appel, modèle, appareil)
+      'x-mdf-kind': meta.kind || 'autre',
+      ...(meta.model ? { 'x-mdf-model': meta.model } : {}),
+      ...(cfg.deviceName?.trim() ? { 'x-mdf-device': encodeURIComponent(cfg.deviceName.trim().slice(0, 60)) } : {}),
+    }
     : { 'x-goog-api-key': String(cfg.apiKey || '').trim() };
   let res;
   try {
