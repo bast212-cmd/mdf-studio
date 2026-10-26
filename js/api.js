@@ -201,6 +201,7 @@ export const api = {
       if (!x) throw notFound('Rendu');
       if (patch.saved !== undefined) x.saved = Boolean(patch.saved);
       if (patch.title !== undefined) x.title = String(patch.title);
+      if (patch.check !== undefined) x.check = patch.check; // contrôle du rendu par l'IA
       out = x;
     });
     return out;
@@ -220,6 +221,10 @@ export const api = {
   async analyzeRoom(id) { return (await import('./ai/ai.js')).analyzeRoom(await this.room(id)); },
   async generateQuick(id) {
     return (await import('./ai/ai.js')).generateQuickRender(await this.room(id));
+  },
+  /** Contrôle d'un rendu rapide par l'IA (fidélité aux photos du catalogue) ; renvoie le résultat enregistré */
+  async checkQuick(id, renderId) {
+    return (await import('./ai/ai.js')).checkQuickRender(await this.room(id), renderId);
   },
   async generate(id, extraInstructions) {
     if (extraInstructions !== undefined) await this.updateRoom(id, { extraInstructions: String(extraInstructions) });

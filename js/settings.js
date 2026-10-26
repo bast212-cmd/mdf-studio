@@ -4,6 +4,7 @@ import { store, APP_VERSION } from './store.js';
 import { esc, $, $$, toast, busy } from './ui.js';
 import { PROVIDERS, getProvider, providerConfig } from './ai/providers/index.js';
 import { exportBackupDialog, pickAndImport, pickLegacyFolder } from './transfer.js';
+import { relayOf } from './ai/providers/gemini.js';
 
 export const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 export const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -29,6 +30,7 @@ export async function renderSettings(view) {
             <button class="btn btn--ghost" type="button" data-test>Tester la connexion</button>
           </div>
           <div id="testout" class="small" style="margin-top:12px"></div>
+          <p class="small" id="suivi" style="margin:12px 0 0"></p>
         </form>
         <div class="alert alert--info small" style="margin-top:20px">
           Avec le relais, la clé Gemini reste sur le relais (Cloudflare) : l'appareil ne garde que le code d'accès. Sans relais, la clé est enregistrée <strong>uniquement sur cet appareil</strong>. Ni l'un ni l'autre n'est inclus dans les fichiers exportés.
@@ -55,11 +57,11 @@ export async function renderSettings(view) {
           <button class="btn btn--ghost" data-backup>Créer une sauvegarde complète</button>
           <button class="btn btn--light" data-restore>Restaurer / importer un fichier</button>
         </div>
-        <p class="muted small" style="margin-top:10px">Pour ne partager que la bibliothèque de meubles : <a href="#/bibliotheque">Bibliothèque › Partager</a>.</p>
+        <p class="muted small" style="margin-top:10px">Pour ne partager que le catalogue de meubles : <a href="#/bibliotheque">Catalogue › Partager</a>.</p>
         ${'webkitdirectory' in document.createElement('input') && !matchMedia('(pointer: coarse)').matches ? `
         <hr>
         <h3>Reprendre l'ancienne version</h3>
-        <p class="small">Sur l'ordinateur qui faisait tourner l'ancienne version (serveur Node.js), choisissez son dossier <strong>data</strong> (il contient db.json, uploads et renders). Projets, rendus et bibliothèque seront copiés ici.</p>
+        <p class="small">Sur l'ordinateur qui faisait tourner l'ancienne version (serveur Node.js), choisissez son dossier <strong>data</strong> (il contient db.json, uploads et renders). Projets, rendus et catalogue seront copiés ici.</p>
         <button class="btn btn--light" data-legacy>Choisir le dossier « data »…</button>` : ''}
       </section>
     </div>`;
@@ -91,6 +93,9 @@ export async function renderSettings(view) {
     }));
   };
   drawFields();
+  // Lien vers la page de suivi des rendus du relais (tous les appareils)
+  const relay = relayOf(providerConfig(settings, 'gemini'));
+  if (relay) $('#suivi', view).innerHTML = `<a href="${esc(relay)}/suivi" target="_blank" rel="noopener">Suivi des rendus de tous les appareils ↗</a> <span class="muted">(même code d'accès)</span>`;
 
   const readForm = () => {
     const p = getProvider(providerId);

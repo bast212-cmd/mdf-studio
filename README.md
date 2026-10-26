@@ -7,7 +7,7 @@ Application web installable (PWA) pour visualiser un nouveau meuble dans une pi�
 3. **Aménagement** : ajout d'un meuble (photo en direct, photo de la pellicule ou bibliothèque), en remplacement ou en placement libre, avec rotation, couleur et matière.
 4. **Rendu IA** : retouche de la photo par Gemini, comparaison avant/après, sauvegarde, partage, régénération.
 
-**Rendu rapide** (bouton sur l'accueil), un écran par étape pensé pour l'iPad : la pièce (appareil photo, pellicule ou pièce récente) › le meuble (catalogue Mobilier de France, bibliothèque ou photo) › finition facultative (matière, consignes) › résultat avant/après. L'IA choisit seule l'emplacement du meuble (à la place du meuble du même type, sinon à l'endroit le plus naturel). « Relancer le rendu » permet d'ajouter une consigne de correction ; « Essayer un autre meuble » garde la pièce. Les rendus rapides apparaissent dans « Mes projets » et dans les sauvegardes comme les autres.
+**Rendu rapide** (bouton sur l'accueil), un écran par étape pensé pour l'iPad : la pièce (appareil photo, pellicule ou pièce récente) › le meuble, ou un ensemble de 2 à 3 meubles (catalogue Mobilier de France, catalogue du magasin ou photo) › finition facultative (matière, consignes) › résultat avant/après. L'IA choisit seule l'emplacement des meubles (à la place du meuble du même type, sinon à l'endroit le plus naturel, en ensemble cohérent). « Relancer le rendu » permet d'ajouter une consigne de correction ; « Enregistrer dans Photos » et « Avant / après dans Photos » passent par la feuille de partage de l'iPad (« Enregistrer l'image »). Garde-fou : après chaque rendu, l'IA le compare aux photos des meubles choisis (présents, fidèles au modèle du catalogue, rien d'autre d'ajouté) ; en cas d'écart, un bandeau discret « Rendu légèrement différent du catalogue » détaille les différences et propose « Affiner le rendu ». Les rendus rapides apparaissent dans « Mes projets » et dans les sauvegardes comme les autres.
 
 **Aucun serveur.** Tout tourne dans le navigateur de chaque appareil :
 
@@ -82,6 +82,13 @@ La clé Gemini est gardée sur un petit relais Cloudflare (dossier `worker/`, gr
 
 ### Sur chaque appareil
 **Réglages** › code d'accès › **Tester la connexion**. Le code reste sur l'appareil et n'est jamais inclus dans les exports.
+Renseignez aussi **Nom de cet appareil** (ex. « iPad magasin Brest ») : il apparaît dans le suivi des rendus.
+
+### Suivi des rendus (facultatif)
+Le relais note chaque appel à l'IA (date, appareil, type, modèle, durée, erreur éventuelle) dans une base Cloudflare D1, et affiche le bilan des 30 derniers jours sur `https://<adresse du relais>/suivi` (lien dans Réglages ; même code d'accès que l'application).
+1. Cloudflare › *Storage & databases › D1 › Create* : nom `mdf-studio-suivi`.
+2. Copiez son identifiant (*Database ID*) dans `worker/wrangler.toml` (bloc `[[d1_databases]]`, à décommenter) et fusionnez dans `main`.
+Sans cette base, le relais fonctionne normalement, sans suivi. Le coût affiché est une estimation à partir du tarif public de Google.
 
 Sans relais (par exemple en ouvrant `index.html` en local), laissez le code d'accès vide et collez une clé Google personnelle : l'appareil appelle alors Google directement.
 

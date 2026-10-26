@@ -13,12 +13,12 @@ export async function exportLibraryDialog(defaultCategory = '') {
   const all = await api.furniture();
   const count = (id) => all.filter((f) => !id || f.category === id).length;
   const m = modal({
-    title: 'Partager la bibliothèque',
+    title: 'Partager le catalogue du magasin',
     content: `
       <p class="small">Crée un fichier contenant les meubles, leurs photos et leurs cotes. Envoyez-le par mail, AirDrop, ou enregistrez-le dans iCloud Drive / Google Drive (app Fichiers). Sur l'autre appareil : <strong>Bibliothèque › Importer</strong>.</p>
       <div class="field"><label>Contenu</label>
         <select id="xcat">
-          <option value="">Toute la bibliothèque (${count('')} meubles)</option>
+          <option value="">Tout le catalogue (${count('')} meubles)</option>
           ${store.categories.map((c) => `<option value="${c.id}" ${c.id === defaultCategory ? 'selected' : ''}>${esc(c.name)} uniquement (${count(c.id)} meubles)</option>`).join('')}
         </select></div>
       <div class="progress hidden" id="xprog"><div></div></div>`,
@@ -65,7 +65,7 @@ export async function exportBackupDialog(btn) {
   try {
     const { exportBackup } = await bundleMod();
     const out = await exportBackup({});
-    fileReadyDialog(out.blob, out.filename, 'Projets, rendus et bibliothèque de cet appareil (la clé API n\'est pas incluse).');
+    fileReadyDialog(out.blob, out.filename, 'Projets, rendus et catalogue de cet appareil (la clé API n\'est pas incluse).');
   } catch (err) { console.error(err); toast('Échec de la sauvegarde : ' + err.message, 'err'); }
   busy(btn, false);
 }

@@ -40,7 +40,7 @@ async function renderHome(view) {
           <a class="btn btn--ghost btn--lg" href="#/projet/nouveau">Projet complet</a>
         </div>
         <p class="muted small" style="margin-top:14px"><strong>Rendu rapide</strong> : photo de la pièce, zone à remplacer, photo du meuble, c'est parti.
-          <strong>Projet complet</strong> : dimensions, plan à l'échelle, plusieurs meubles et bibliothèque.</p>
+          <strong>Projet complet</strong> : dimensions, plan à l'échelle, plusieurs meubles et catalogue.</p>
       </div>
       <div class="hero__visual">${HERO_SVG}</div>
     </section>
@@ -48,7 +48,7 @@ async function renderHome(view) {
     <div class="steps-intro">
       <div><h3>Votre pièce</h3><p class="muted small">Importez ou prenez des photos, indiquez longueur, largeur et hauteur.</p></div>
       <div><h3>Le plan</h3><p class="muted small">Un plan à l'échelle est généré : positionnez les meubles existants et le point de vue.</p></div>
-      <div><h3>Vos meubles</h3><p class="muted small">Photographiez un meuble ou choisissez-le dans la bibliothèque, remplacez ou placez-le.</p></div>
+      <div><h3>Vos meubles</h3><p class="muted small">Photographiez un meuble ou choisissez-le dans le catalogue, remplacez ou placez-le.</p></div>
       <div><h3>Le rendu</h3><p class="muted small">Générez l'image, comparez avant/après, sauvegardez ou modifiez.</p></div>
     </div>
 
