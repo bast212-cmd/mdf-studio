@@ -15,8 +15,8 @@ ALLOWED_ORIGINS = "https://graceful-pothos-d68e8a.netlify.app,https://*--gracefu
 
 # Suivi des rendus (page /suivi du relais) : base D1 facultative, sans elle le relais fonctionne sans suivi.
 # 1. Cloudflare › Storage & databases › D1 › Create : nom « mdf-studio-suivi »
-# 2. Copier son identifiant (Database ID) ci-dessous, enlever les # des 4 lignes, puis fusionner dans main.
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "mdf-studio-suivi"
-# database_id = "COLLER-ICI-L-IDENTIFIANT"
+# 2. Son identifiant (Database ID) est renseigné ci-dessous.
+[[d1_databases]]
+binding = "DB"
+database_name = "mdf-studio-suivi"
+database_id = "c394961f-a14f-45f2-a464-3d3e837ad729"
